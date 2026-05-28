@@ -1,0 +1,3200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KW바른자세</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #0c0c0b;
+            --s1: #161615;
+            --s2: #1e1e1c;
+            --s3: #262624;
+            --s4: #2e2e2b;
+            --bd: rgba(255,255,255,0.06);
+            --bd2: rgba(255,255,255,0.12);
+            --bd3: rgba(255,255,255,0.2);
+            --tx: #dedad2;
+            --tx2: #7a7870;
+            --tx3: #46443f;
+            --green: #3ecf8e;
+            --gd: rgba(62,207,142,0.12);
+            --amber: #f5a824;
+            --ad: rgba(245,168,36,0.12);
+            --red: #f5534f;
+            --rd: rgba(245,83,79,0.12);
+            --mono: 'DM Mono',monospace;
+            --sans: 'Pretendard',sans-serif;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden
+        }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--tx);
+            display: flex;
+            flex-direction: column
+        }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            height: 50px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            border-bottom: 1px solid var(--bd);
+            background: var(--s1);
+        }
+
+        .tl {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: -.4px
+        }
+
+        .pulse {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 0 0 rgba(62,207,142,.5);
+            animation: pulseRing 2.2s ease-in-out infinite;
+        }
+
+        @keyframes pulseRing {
+            0% {
+                box-shadow: 0 0 0 0 rgba(62,207,142,.5)
+            }
+
+            60% {
+                box-shadow: 0 0 0 7px rgba(62,207,142,0)
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(62,207,142,0)
+            }
+        }
+
+        .sep {
+            width: 1px;
+            height: 20px;
+            background: var(--bd2)
+        }
+
+        .conn-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-family: var(--mono);
+            border: 1px solid var(--bd2);
+            color: var(--tx2);
+            cursor: pointer;
+            background: transparent;
+            transition: all .2s;
+        }
+
+            .conn-btn:hover {
+                border-color: var(--green);
+                color: var(--green)
+            }
+
+            .conn-btn.on {
+                background: var(--gd);
+                border-color: rgba(62,207,142,.35);
+                color: var(--green)
+            }
+
+        .cdot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--tx3);
+            transition: all .3s
+        }
+
+        .conn-btn.on .cdot {
+            background: var(--green);
+            animation: pulseRing 2s infinite
+        }
+
+        .tr {
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .chip {
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .2px;
+            transition: all .35s
+        }
+
+            .chip.good {
+                background: var(--gd);
+                color: var(--green);
+                border: 1px solid rgba(62,207,142,.25)
+            }
+
+            .chip.warn {
+                background: var(--ad);
+                color: var(--amber);
+                border: 1px solid rgba(245,168,36,.25)
+            }
+
+            .chip.bad {
+                background: var(--rd);
+                color: var(--red);
+                border: 1px solid rgba(245,83,79,.25);
+                animation: nudge .35s ease
+            }
+
+            .chip.idle {
+                background: var(--s2);
+                color: var(--tx2);
+                border: 1px solid var(--bd2)
+            }
+
+        @keyframes nudge {
+            0%,100% {
+                transform: translateX(0)
+            }
+
+            33% {
+                transform: translateX(-3px)
+            }
+
+            66% {
+                transform: translateX(3px)
+            }
+        }
+
+        .clk {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--tx2);
+            letter-spacing: .5px
+        }
+
+        .end-btn {
+            padding: 5px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            background: var(--rd);
+            color: var(--red);
+            border: 1px solid rgba(245,83,79,.3);
+            cursor: pointer;
+            font-family: var(--sans);
+            transition: all .2s;
+        }
+
+            .end-btn:hover {
+                background: var(--red);
+                color: #fff
+            }
+
+        .analyze-btn {
+            padding: 5px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            background: rgba(96,165,250,.12);
+            color: #60a5fa;
+            border: 1px solid rgba(96,165,250,.35);
+            cursor: pointer;
+            font-family: var(--sans);
+            transition: all .2s;
+            margin-right: 6px;
+        }
+            .analyze-btn:hover {
+                background: #60a5fa;
+                color: #fff;
+            }
+
+        .export-btn {
+            padding: 5px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            background: rgba(167,139,250,.12);
+            color: #a78bfa;
+            border: 1px solid rgba(167,139,250,.35);
+            cursor: pointer;
+            font-family: var(--sans);
+            transition: all .2s;
+            margin-right: 6px;
+        }
+            .export-btn:hover {
+                background: #a78bfa;
+                color: #fff;
+            }
+
+        .clear-btn {
+            padding: 5px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            background: rgba(148,163,184,.10);
+            color: #94a3b8;
+            border: 1px solid rgba(148,163,184,.30);
+            cursor: pointer;
+            font-family: var(--sans);
+            transition: all .2s;
+            margin-right: 6px;
+        }
+            .clear-btn:hover {
+                background: var(--red);
+                color: #fff;
+                border-color: var(--red);
+            }
+
+        .restart-btn {
+            padding: 5px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            background: rgba(62,207,142,.12);
+            color: var(--green);
+            border: 1px solid rgba(62,207,142,.35);
+            cursor: pointer;
+            font-family: var(--sans);
+            transition: all .2s;
+            margin-right: 6px;
+        }
+            .restart-btn:hover {
+                background: var(--green);
+                color: #fff;
+            }
+
+        /* ── LAYOUT ── */
+        .main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 390px;
+            overflow: hidden
+        }
+
+        /* ── LEFT WEBCAM ── */
+        .wcpanel {
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            gap: 12px;
+            border-right: 1px solid var(--bd);
+            overflow: hidden;
+        }
+
+        .plabel {
+            font-size: 10px;
+            font-family: var(--mono);
+            color: var(--tx3);
+            text-transform: uppercase;
+            letter-spacing: .9px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+            .plabel::after {
+                content: '';
+                flex: 1;
+                height: 1px;
+                background: var(--bd)
+            }
+
+        .wcframe {
+            flex: 1;
+            min-height: 0;
+            background: var(--s2);
+            border-radius: 14px;
+            border: 1px solid var(--bd);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .wcframe video,
+            .wcframe canvas.pose-canvas {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: 14px;
+            }
+
+            .wcframe video {
+                display: none
+            }
+
+                .wcframe video.on {
+                    display: block
+                }
+
+            .wcframe canvas.pose-canvas {
+                display: none;
+                pointer-events: none
+            }
+
+                .wcframe canvas.pose-canvas.on {
+                    display: block
+                }
+
+        .wc-ph {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            color: var(--tx3);
+            position: relative;
+            z-index: 2
+        }
+
+        .wc-ph-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            background: var(--s3);
+            border: 1px solid var(--bd2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .wc-ph p {
+            font-size: 13px;
+            color: var(--tx2)
+        }
+
+        .wc-ph span {
+            font-size: 11px;
+            color: var(--tx3)
+        }
+
+        .live-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(245,83,79,.9);
+            color: #fff;
+            font-size: 10px;
+            font-family: var(--mono);
+            font-weight: 500;
+            padding: 3px 9px;
+            border-radius: 5px;
+            display: none;
+            align-items: center;
+            gap: 5px;
+            z-index: 10;
+        }
+
+            .live-badge.on {
+                display: flex
+            }
+
+        .rdot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #fff;
+            animation: blink .9s ease infinite
+        }
+
+        @keyframes blink {
+            0%,100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .2
+            }
+        }
+
+        /* 포즈 상태 오버레이 */
+        .pose-status-overlay {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
+            background: rgba(12,12,11,.82);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--bd2);
+            border-radius: 10px;
+            padding: 8px 14px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            font-family: var(--mono);
+            z-index: 10;
+            gap: 12px;
+        }
+
+            .pose-status-overlay.on {
+                display: flex
+            }
+
+        .pso-label {
+            color: var(--tx3);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .6px
+        }
+
+        .pso-val {
+            font-weight: 500;
+            color: var(--tx)
+        }
+
+        .pso-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px
+        }
+
+        /* 캘리브레이션 배너 */
+        .calib-banner {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(12,12,11,.88);
+            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            z-index: 20;
+            text-align: center;
+        }
+
+            .calib-banner.on {
+                display: flex
+            }
+
+        .calib-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--tx)
+        }
+
+        .calib-sub {
+            font-size: 12px;
+            color: var(--tx3);
+            font-family: var(--mono)
+        }
+
+        .calib-progress {
+            width: 180px;
+            height: 4px;
+            background: var(--s3);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .calib-bar {
+            height: 100%;
+            background: var(--green);
+            transition: width .3s;
+            width: 0%
+        }
+
+        .cam-ctrl {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0
+        }
+
+        .cam-btn {
+            flex: 1;
+            padding: 9px;
+            border-radius: 9px;
+            font-size: 12px;
+            font-weight: 500;
+            background: var(--s2);
+            border: 1px solid var(--bd2);
+            color: var(--tx2);
+            cursor: pointer;
+            font-family: var(--sans);
+            transition: all .2s;
+        }
+
+            .cam-btn:hover {
+                background: var(--s3);
+                color: var(--tx)
+            }
+
+            .cam-btn.pri {
+                background: #3b82f6;
+                color: #fff;
+                border-color: #3b82f6
+            }
+
+                .cam-btn.pri:hover {
+                    background: #2563eb
+                }
+
+            .cam-btn.stop {
+                background: var(--rd);
+                color: var(--red);
+                border-color: rgba(245,83,79,.35)
+            }
+
+        /* 이벤트 로그 */
+        .log-panel {
+            flex-shrink: 0;
+            max-height: 130px;
+            overflow-y: auto;
+            background: var(--s1);
+            border: 1px solid var(--bd);
+            border-radius: 9px;
+            padding: 6px 10px;
+        }
+
+        .log-row {
+            font-size: 10px;
+            font-family: var(--mono);
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255,255,255,.03);
+            display: flex;
+            gap: 8px;
+        }
+
+            .log-row:last-child {
+                border: none
+            }
+
+        .log-time {
+            color: var(--tx3);
+            flex-shrink: 0
+        }
+
+        .log-msg.ok {
+            color: var(--green)
+        }
+
+        .log-msg.warn {
+            color: var(--amber)
+        }
+
+        .log-msg.danger {
+            color: var(--red)
+        }
+
+        /* ── RIGHT PANEL ── */
+        .rpanel {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden
+        }
+
+        /* Chair section */
+        .chair-sec {
+            flex: 1;
+            min-height: 0;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--bd);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow: hidden;
+        }
+
+        .chair-wrap {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .chair-svg {
+            width: 100%;
+            max-width: 280px;
+            height: 100%;
+            max-height: 260px
+        }
+
+        /* Sensor cells */
+        .scells {
+            display: grid;
+            grid-template-columns: repeat(4,1fr);
+            gap: 5px;
+            flex-shrink: 0
+        }
+
+        .scell {
+            background: var(--s2);
+            border: 1px solid var(--bd);
+            border-radius: 9px;
+            padding: 6px 8px;
+            text-align: center;
+            transition: all .3s;
+        }
+
+            .scell.ok {
+                border-color: var(--green);
+                background: var(--gd)
+            }
+
+            .scell.wn {
+                border-color: var(--amber);
+                background: var(--ad)
+            }
+
+            .scell.bd {
+                border-color: var(--red);
+                background: var(--rd)
+            }
+
+        .stag {
+            font-size: 9px;
+            font-family: var(--mono);
+            color: var(--tx3);
+            text-transform: uppercase;
+            margin-bottom: 3px
+        }
+
+        .sval {
+            font-size: 16px;
+            font-weight: 700;
+            font-family: var(--mono);
+            transition: color .3s;
+            color: var(--tx3)
+        }
+
+        .scell.ok .sval {
+            color: var(--green)
+        }
+
+        .scell.wn .sval {
+            color: var(--amber)
+        }
+
+        .scell.bd .sval {
+            color: var(--red)
+        }
+
+        /* Mini stats */
+        .mini-stats {
+            padding: 10px 16px;
+            display: grid;
+            grid-template-columns: repeat(2,1fr);
+            border-bottom: 1px solid var(--bd);
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .mstat {
+            text-align: center
+        }
+
+        .mstat-v {
+            font-family: var(--mono);
+            font-size: 17px;
+            font-weight: 500
+        }
+
+        .mstat-l {
+            font-size: 10px;
+            color: var(--tx3);
+            margin-top: 2px
+        }
+
+        /* Controls */
+        .ctrl-sec {
+            padding: 10px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            flex-shrink: 0
+        }
+
+        .mode-row {
+            display: grid;
+            grid-template-columns: repeat(3,1fr);
+            gap: 5px
+        }
+
+        .mbtn {
+            padding: 6px;
+            border-radius: 7px;
+            font-size: 11px;
+            font-weight: 500;
+            background: transparent;
+            border: 1px solid var(--bd);
+            color: var(--tx3);
+            cursor: pointer;
+            font-family: var(--sans);
+            transition: all .15s;
+        }
+
+            .mbtn.on {
+                background: var(--s3);
+                border-color: var(--bd2);
+                color: var(--tx)
+            }
+
+        .act-row {
+            display: flex;
+            gap: 6px
+        }
+
+        .abtn {
+            flex: 1;
+            padding: 7px;
+            border-radius: 7px;
+            font-size: 11px;
+            font-weight: 500;
+            background: var(--s2);
+            border: 1px solid var(--bd2);
+            color: var(--tx2);
+            cursor: pointer;
+            font-family: var(--sans);
+            transition: all .15s;
+        }
+
+            .abtn:hover {
+                background: var(--s3);
+                color: var(--tx)
+            }
+
+            .abtn.pri {
+                background: var(--gd);
+                border-color: rgba(62,207,142,.3);
+                color: var(--green)
+            }
+
+        /* Manual sliders */
+        .sli-area {
+            padding: 0 16px 10px;
+            display: none
+        }
+
+            .sli-area.on {
+                display: block
+            }
+
+        .sli-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px
+        }
+
+        .sli-item label {
+            font-size: 10px;
+            color: var(--tx3);
+            font-family: var(--mono);
+            display: block;
+            margin-bottom: 3px
+        }
+
+        .sli-item input {
+            width: 100%;
+            accent-color: var(--green)
+        }
+
+        /* ── STATS OVERLAY ── */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(8,8,7,.97);
+            backdrop-filter: blur(16px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity .45s;
+        }
+
+            .overlay.on {
+                display: flex;
+                opacity: 1
+            }
+
+        .stats-card {
+            background: var(--s1);
+            border: 1px solid var(--bd2);
+            border-radius: 22px;
+            width: 100%;
+            max-width: 740px;
+            padding: 36px 36px 28px;
+            transform: translateY(28px);
+            transition: transform .45s cubic-bezier(.16,1,.3,1);
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+
+        .overlay.on .stats-card {
+            transform: translateY(0)
+        }
+
+        .st-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 28px
+        }
+
+        .st-title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -.4px
+        }
+
+        .st-sub {
+            font-size: 11px;
+            color: var(--tx3);
+            font-family: var(--mono);
+            margin-top: 4px
+        }
+
+        .st-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--s2);
+            border: 1px solid var(--bd2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--tx2);
+            font-size: 16px;
+            flex-shrink: 0;
+            transition: all .15s;
+        }
+
+            .st-close:hover {
+                background: var(--s3);
+                color: var(--tx)
+            }
+
+        .st-big3 {
+            display: grid;
+            grid-template-columns: repeat(3,1fr);
+            gap: 10px;
+            margin-bottom: 20px
+        }
+
+        .big-card {
+            background: var(--s2);
+            border-radius: 14px;
+            padding: 20px;
+            border: 1px solid var(--bd);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .big-card::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                border-radius: 14px;
+                opacity: .06;
+            }
+
+            .big-card.g::before {
+                background: var(--green)
+            }
+
+            .big-card.a::before {
+                background: var(--amber)
+            }
+
+            .big-card.r::before {
+                background: var(--red)
+            }
+
+        .big-v {
+            font-size: 34px;
+            font-weight: 700;
+            font-family: var(--mono);
+            margin-bottom: 4px;
+            line-height: 1
+        }
+
+        .big-card.g .big-v {
+            color: var(--green)
+        }
+
+        .big-card.a .big-v {
+            color: var(--amber)
+        }
+
+        .big-card.r .big-v {
+            color: var(--red)
+        }
+
+        .big-l {
+            font-size: 11px;
+            color: var(--tx2)
+        }
+
+        .st-section-title {
+            font-size: 10px;
+            font-family: var(--mono);
+            color: var(--tx3);
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .st-section-title::after {
+                content: '';
+                flex: 1;
+                height: 1px;
+                background: var(--bd)
+            }
+
+        .timeline-wrap {
+            background: var(--s2);
+            border: 1px solid var(--bd);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 18px;
+        }
+
+        /* 인사이트 카드 그리드 */
+        .insight-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .insight-card {
+            background: var(--s2);
+            border: 1px solid var(--bd);
+            border-left-width: 3px;
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+        .insight-card .ic-head {
+            display: flex; align-items: center; gap: 7px;
+            font-size: 12px; color: var(--tx2); margin-bottom: 6px;
+        }
+        .insight-card .ic-val {
+            font-size: 18px; font-weight: 700; margin-bottom: 4px;
+        }
+        .insight-card .ic-desc {
+            font-size: 12px; color: var(--tx2); line-height: 1.45;
+        }
+        /* 자세 문제 랭킹 */
+        .rank-list { margin-bottom: 18px; display: flex; flex-direction: column; gap: 8px; }
+        .rank-item {
+            display: flex; align-items: center; gap: 10px;
+            background: var(--s2); border: 1px solid var(--bd);
+            border-radius: 10px; padding: 10px 14px;
+        }
+        .rank-num {
+            width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; color: #fff;
+        }
+        .rank-name { flex: 1; font-size: 13px; font-weight: 500; }
+        .rank-bar-track {
+            flex: 1.5; height: 7px; background: rgba(255,255,255,.06);
+            border-radius: 4px; overflow: hidden;
+        }
+        .rank-bar-fill { height: 100%; border-radius: 4px; }
+        .rank-pct { width: 46px; text-align: right; font-size: 12px; color: var(--tx2); font-variant-numeric: tabular-nums; }
+        /* 맞춤형 피드백 */
+        .fb-list { margin-bottom: 18px; display: flex; flex-direction: column; gap: 9px; }
+        .fb-item {
+            display: flex; gap: 10px; align-items: flex-start;
+            background: var(--s2); border: 1px solid var(--bd);
+            border-left-width: 3px; border-radius: 10px;
+            padding: 12px 14px; font-size: 13px; line-height: 1.5;
+        }
+        .fb-item .fb-icon { flex-shrink: 0; font-size: 15px; margin-top: 1px; }
+
+        .timeline-legend {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .tleg {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: var(--tx2)
+        }
+
+        .tleg-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px
+        }
+
+        .chart-scroll {
+            overflow-x: auto;
+            overflow-y: hidden
+        }
+
+        #timelineCanvas {
+            display: block
+        }
+
+        .ratio-row {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 18px
+        }
+
+        .donut-wrap {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            margin: 0 auto
+        }
+
+        #donutCanvas {
+            display: block
+        }
+
+        .donut-center {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+        }
+
+        .donut-pct {
+            font-size: 26px;
+            font-weight: 700;
+            font-family: var(--mono);
+            color: var(--green)
+        }
+
+        .donut-lbl {
+            font-size: 10px;
+            color: var(--tx3)
+        }
+
+        .ratio-detail {
+            display: flex;
+            flex-direction: column;
+            gap: 8px
+        }
+
+        .rbar-row {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .rbar-label {
+            font-size: 11px;
+            color: var(--tx2);
+            width: 52px;
+            flex-shrink: 0;
+            font-family: var(--mono)
+        }
+
+        .rbar-track {
+            flex: 1;
+            height: 6px;
+            background: var(--s3);
+            border-radius: 3px;
+            overflow: hidden
+        }
+
+        .rbar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width .9s cubic-bezier(.16,1,.3,1)
+        }
+
+        .rbar-num {
+            font-size: 11px;
+            font-family: var(--mono);
+            color: var(--tx3);
+            width: 32px;
+            text-align: right;
+            flex-shrink: 0
+        }
+
+        .sensor-avgs {
+            background: var(--s2);
+            border: 1px solid var(--bd);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 20px
+        }
+
+        .savg-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px
+        }
+
+            .savg-row:last-child {
+                margin-bottom: 0
+            }
+
+        .savg-lbl {
+            font-size: 11px;
+            color: var(--tx2);
+            font-family: var(--mono);
+            width: 62px;
+            flex-shrink: 0
+        }
+
+        .savg-track {
+            flex: 1;
+            height: 8px;
+            background: var(--s3);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative
+        }
+
+        .savg-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width .9s cubic-bezier(.16,1,.3,1)
+        }
+
+        .savg-num {
+            font-size: 11px;
+            font-family: var(--mono);
+            color: var(--tx2);
+            width: 30px;
+            text-align: right;
+            flex-shrink: 0
+        }
+
+        .st-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end
+        }
+
+        .sact {
+            padding: 9px 20px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: var(--sans);
+            transition: all .2s;
+            border: 1px solid var(--bd2);
+            background: transparent;
+            color: var(--tx2);
+        }
+
+            .sact:hover {
+                background: var(--s3);
+                color: var(--tx)
+            }
+
+            .sact.pri {
+                background: var(--green);
+                color: #000;
+                border-color: var(--green);
+                font-weight: 600
+            }
+
+                .sact.pri:hover {
+                    opacity: .85
+                }
+
+        /* 경고 토스트 */
+        .toast {
+            position: fixed;
+            top: 64px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(245,83,79,.15);
+            border: 1px solid rgba(245,83,79,.4);
+            color: var(--red);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 10px 24px;
+            border-radius: 10px;
+            opacity: 0;
+            transition: all .35s;
+            z-index: 300;
+            pointer-events: none;
+            backdrop-filter: blur(10px);
+        }
+
+            .toast.on {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0)
+            }
+
+        /* 거북목 세부 통계 */
+        .neck-stats {
+            padding: 6px 0 4px;
+            border-bottom: 1px solid var(--bd);
+            flex-shrink: 0
+        }
+
+        .neck-grid {
+            display: grid;
+            grid-template-columns: repeat(4,1fr);
+            gap: 5px;
+            padding: 0 16px
+        }
+
+        .neck-cell {
+            background: var(--s2);
+            border: 1px solid var(--bd);
+            border-radius: 9px;
+            padding: 7px 4px;
+            text-align: center;
+            transition: all .3s;
+        }
+
+            .neck-cell.active {
+                border-color: var(--red);
+                background: var(--rd)
+            }
+
+        .neck-icon {
+            font-size: 16px;
+            margin-bottom: 3px
+        }
+
+        .neck-val {
+            font-size: 14px;
+            font-weight: 700;
+            font-family: var(--mono);
+            color: var(--tx);
+            margin-bottom: 1px
+        }
+
+        .neck-lbl {
+            font-size: 9px;
+            color: var(--tx3);
+            margin-bottom: 2px
+        }
+
+        .neck-sub {
+            font-size: 9px;
+            font-family: var(--mono);
+            color: var(--tx3)
+        }
+
+        .neck-cell.active .neck-val {
+            color: var(--red)
+        }
+
+        .neck-cell.active .neck-sub {
+            color: var(--amber)
+        }
+
+        /* 거북목 상세 테이블 (발생횟수 열 제거로 그리드 비율 조정 4열->3열) */
+        .neck-detail-table {
+            background: var(--s2);
+            border: 1px solid var(--bd);
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 18px;
+        }
+
+        .ndt-row {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr;
+            padding: 9px 16px;
+            font-size: 11px;
+            font-family: var(--mono);
+            border-bottom: 1px solid var(--bd);
+            align-items: center;
+        }
+
+            .ndt-row:last-child {
+                border: none
+            }
+
+            .ndt-row.header {
+                font-size: 9px;
+                color: var(--tx3);
+                text-transform: uppercase;
+                letter-spacing: .5px;
+                background: var(--s3)
+            }
+
+            .ndt-row span:first-child {
+                color: var(--tx)
+            }
+
+            .ndt-row span:not(:first-child) {
+                text-align: right;
+                color: var(--tx2)
+            }
+
+        .two-col-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 18px
+        }
+
+            .two-col-stats .st-section-title {
+                margin-bottom: 8px
+            }
+
+            .two-col-stats .neck-detail-table {
+                margin-bottom: 0
+            }
+    </style>
+</head>
+<body>
+
+    <div class="topbar">
+        <div class="tl">
+            <div class="logo"><div class="pulse"></div>KW바른자세</div>
+            <div class="sep"></div>
+            <button class="conn-btn" id="connBtn" onclick="toggleConn()">
+                <div class="cdot" id="cdot"></div>
+                <span id="connLbl">아두이노 연결</span>
+            </button>
+        </div>
+        <div class="tr">
+            <div class="chip idle" id="chip">대기 중</div>
+            <div class="clk" id="clk">00:00:00</div>
+            <button class="analyze-btn" onclick="analyzeAllSessions()">📊 누적 분석</button>
+            <button class="export-btn" onclick="downloadReportTxt()">📄 파일 저장</button>
+            <button class="clear-btn" onclick="clearSessionHistory()">🗑 기록 삭제</button>
+            <button class="restart-btn" onclick="restartSession()">🔄 다시 시작</button>
+            <button class="end-btn" onclick="endSession()">세션 종료</button>
+        </div>
+    </div>
+
+    <div class="main">
+
+        <div class="wcpanel">
+            <div class="plabel">실시간 웹캠 · 거북목 감지</div>
+            <div class="wcframe" id="wcframe">
+                <video id="wcvid" autoplay playsinline muted></video>
+                <canvas id="poseCanvas" class="pose-canvas"></canvas>
+                <div class="wc-ph" id="wcph">
+                    <div class="wc-ph-icon">📷</div>
+                    <p>카메라 미연결</p>
+                    <span>아래 버튼으로 웹캠을 시작하세요</span>
+                </div>
+                <div class="live-badge" id="liveBadge"><div class="rdot"></div>LIVE</div>
+
+                <div class="calib-banner" id="calibBanner">
+                    <div class="calib-title">🧘 바른 자세로 앉아주세요</div>
+                    <div class="calib-sub" id="calibSub">준비되면 기준점 보정 버튼을 누르세요</div>
+                    <div class="calib-progress"><div class="calib-bar" id="calibBar"></div></div>
+                </div>
+
+                <div class="pose-status-overlay" id="psoPanel">
+                    <div class="pso-item"><div class="pso-label">Neck Ratio</div><div class="pso-val" id="psoNeck">—</div></div>
+                    <div class="pso-item"><div class="pso-label">Shoulder Slope</div><div class="pso-val" id="psoSlope">—</div></div>
+                    <div class="pso-item"><div class="pso-label">상태</div><div class="pso-val" id="psoState">—</div></div>
+                    <div class="pso-item"><div class="pso-label">불량 지속</div><div class="pso-val" id="psoBad">—</div></div>
+                </div>
+            </div>
+
+            <div class="log-panel" id="logPanel"></div>
+
+            <div class="cam-ctrl">
+                <button class="cam-btn pri" id="camBtn" onclick="toggleCam()">📷 카메라 시작</button>
+            </div>
+        </div>
+
+        <div class="rpanel">
+
+            <div class="chair-sec">
+                <div class="plabel">압력 센서 시각화</div>
+                <div class="chair-wrap">
+                    <svg class="chair-svg" viewBox="0 0 280 290" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="seatGrad" cx="50%" cy="40%" r="60%">
+                                <stop offset="0%" stop-color="#2e2e2b" />
+                                <stop offset="100%" stop-color="#1a1a18" />
+                            </radialGradient>
+                            <radialGradient id="backGrad" cx="50%" cy="50%" r="60%">
+                                <stop offset="0%" stop-color="#282826" />
+                                <stop offset="100%" stop-color="#1c1c1a" />
+                            </radialGradient>
+                            <filter id="glow-filter">
+                                <feGaussianBlur stdDeviation="3" result="blur" />
+                                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                            </filter>
+                        </defs>
+                        <g transform="translate(140,275)">
+                            <ellipse rx="52" ry="9" fill="#141412" opacity=".7" />
+                            <line x1="0" y1="-4" x2="-46" y2="4" stroke="#1e1e1c" stroke-width="5" stroke-linecap="round" />
+                            <line x1="0" y1="-4" x2="-28" y2="8" stroke="#1e1e1c" stroke-width="5" stroke-linecap="round" />
+                            <line x1="0" y1="-4" x2="0" y2="10" stroke="#1e1e1c" stroke-width="5" stroke-linecap="round" />
+                            <line x1="0" y1="-4" x2="28" y2="8" stroke="#1e1e1c" stroke-width="5" stroke-linecap="round" />
+                            <line x1="0" y1="-4" x2="46" y2="4" stroke="#1e1e1c" stroke-width="5" stroke-linecap="round" />
+                            <circle cx="-46" cy="4" r="4.5" fill="#111110" />
+                            <circle cx="-28" cy="8" r="4.5" fill="#111110" />
+                            <circle cx="0" cy="10" r="4.5" fill="#111110" />
+                            <circle cx="28" cy="8" r="4.5" fill="#111110" />
+                            <circle cx="46" cy="4" r="4.5" fill="#111110" />
+                        </g>
+                        <rect x="134" y="217" width="12" height="52" rx="6" fill="#1a1a18" stroke="#2a2a27" stroke-width="1" />
+                        <rect x="132" y="240" width="16" height="5" rx="2.5" fill="#232321" />
+                        <rect x="133" y="253" width="14" height="3" rx="1.5" fill="#1e1e1c" />
+                        <rect x="88" y="210" width="104" height="12" rx="6" fill="#1c1c1a" stroke="#2a2a27" stroke-width="1" />
+                        <rect x="62" y="185" width="156" height="36" rx="14" fill="#1e1e1c" stroke="#2c2c29" stroke-width="1" />
+                        <rect x="64" y="186" width="152" height="34" rx="13" fill="url(#seatGrad)" />
+                        <line x1="140" y1="188" x2="140" y2="218" stroke="#1a1a18" stroke-width="1.5" stroke-dasharray="2,3" opacity=".6" />
+                        <ellipse cx="140" cy="220" rx="72" ry="5" fill="#1a1a18" opacity=".5" />
+                        <rect id="glow2" x="66" y="187" width="70" height="32" rx="12" fill="#3ecf8e" opacity="0.12" style="transition:all .4s" />
+                        <rect id="glow3" x="144" y="187" width="70" height="32" rx="12" fill="#3ecf8e" opacity="0.12" style="transition:all .4s" />
+                        <rect x="60" y="163" width="8" height="52" rx="4" fill="#1c1c1a" stroke="#282826" stroke-width="1" />
+                        <rect x="48" y="155" width="32" height="12" rx="6" fill="#222220" stroke="#2e2e2b" stroke-width="1" />
+                        <rect x="50" y="156" width="28" height="10" rx="5" fill="#282826" />
+                        <rect x="212" y="163" width="8" height="52" rx="4" fill="#1c1c1a" stroke="#282826" stroke-width="1" />
+                        <rect x="200" y="155" width="32" height="12" rx="6" fill="#222220" stroke="#2e2e2b" stroke-width="1" />
+                        <rect x="202" y="156" width="28" height="10" rx="5" fill="#282826" />
+                        <rect x="72" y="40" width="11" height="152" rx="5.5" fill="#1a1a18" stroke="#252523" stroke-width="1" />
+                        <rect x="197" y="40" width="11" height="152" rx="5.5" fill="#1a1a18" stroke="#252523" stroke-width="1" />
+                        <rect x="72" y="38" width="136" height="13" rx="6.5" fill="#1c1c1a" stroke="#282826" stroke-width="1" />
+                        <!-- 등받이 전체 배경 (좌우로 분할 표시) -->
+                        <rect x="84" y="44" width="112" height="148" rx="14" fill="#111110" opacity=".5" />
+                        <rect x="85" y="42" width="110" height="148" rx="13" fill="url(#backGrad)" stroke="#2a2a28" stroke-width="1" />
+                        <!-- 좌우 분리선 -->
+                        <line x1="140" y1="50" x2="140" y2="184" stroke="#181816" stroke-width="1.5" stroke-dasharray="3,4" opacity=".7" />
+                        <!-- 좌측 등 가이드 박스 -->
+                        <rect x="92" y="52" width="44" height="128" rx="8" fill="none" stroke="#232321" stroke-width="1" stroke-dasharray="3,3" />
+                        <!-- 우측 등 가이드 박스 -->
+                        <rect x="144" y="52" width="44" height="128" rx="8" fill="none" stroke="#232321" stroke-width="1" stroke-dasharray="3,3" />
+                        <!-- 좌 등 glow (glow0) -->
+                        <rect id="glow0" x="87" y="44" width="51" height="144" rx="11" fill="#3ecf8e" opacity="0.12" style="transition:all .4s" />
+                        <!-- 우 등 glow (glow1) -->
+                        <rect id="glow1" x="142" y="44" width="51" height="144" rx="11" fill="#3ecf8e" opacity="0.12" style="transition:all .4s" />
+                        <rect x="106" y="26" width="68" height="22" rx="8" fill="#1e1e1c" stroke="#2a2a28" stroke-width="1" />
+                        <rect x="108" y="28" width="64" height="18" rx="7" fill="#222220" />
+                        <rect x="128" y="36" width="24" height="8" rx="4" fill="#191917" />
+                        <!-- 좌 등 점 (dot0) -->
+                        <circle id="ring0" cx="114" cy="116" r="14" fill="none" stroke="#3ecf8e" stroke-width="1" opacity="0" style="transition:all .4s" />
+                        <circle id="dot0" cx="114" cy="116" r="6" fill="#3ecf8e" style="transition:all .4s;filter:drop-shadow(0 0 4px #3ecf8e)" />
+                        <!-- 우 등 점 (dot1) -->
+                        <circle id="ring1" cx="166" cy="116" r="14" fill="none" stroke="#3ecf8e" stroke-width="1" opacity="0" style="transition:all .4s" />
+                        <circle id="dot1" cx="166" cy="116" r="6" fill="#3ecf8e" style="transition:all .4s;filter:drop-shadow(0 0 4px #3ecf8e)" />
+                        <circle id="ring2" cx="102" cy="203" r="14" fill="none" stroke="#3ecf8e" stroke-width="1" opacity="0" style="transition:all .4s" />
+                        <circle id="dot2" cx="102" cy="203" r="6" fill="#3ecf8e" style="transition:all .4s;filter:drop-shadow(0 0 4px #3ecf8e)" />
+                        <circle id="ring3" cx="178" cy="203" r="14" fill="none" stroke="#3ecf8e" stroke-width="1" opacity="0" style="transition:all .4s" />
+                        <circle id="dot3" cx="178" cy="203" r="6" fill="#3ecf8e" style="transition:all .4s;filter:drop-shadow(0 0 4px #3ecf8e)" />
+                    </svg>
+                </div>
+
+                <div class="scells">
+                    <div class="scell" id="sc0"><div class="stag">좌 등</div><div class="sval" id="sv0">0</div></div>
+                    <div class="scell" id="sc1"><div class="stag">우 등</div><div class="sval" id="sv1">0</div></div>
+                    <div class="scell" id="sc2"><div class="stag">좌 엉덩이</div><div class="sval" id="sv2">0</div></div>
+                    <div class="scell" id="sc3"><div class="stag">우 엉덩이</div><div class="sval" id="sv3">0</div></div>
+                </div>
+            </div>
+
+            <div class="mini-stats">
+                <div class="mstat"><div class="mstat-v" id="mGood">00:00</div><div class="mstat-l">바른 자세 유지</div></div>
+                <div class="mstat"><div class="mstat-v" id="mPct">0%</div><div class="mstat-l">실시간 준수율</div></div>
+            </div>
+
+            <div class="ctrl-sec">
+                <div class="mode-row">
+                    <button class="mbtn on" id="mAuto" onclick="setMode('auto')">자동 감지</button>
+                    <button class="mbtn" id="mManual" onclick="setMode('manual')">수동 입력</button>
+                    <button class="mbtn" id="mSim" onclick="setMode('sim')">시뮬레이션</button>
+                </div>
+                <div class="act-row">
+                    <button class="abtn pri" onclick="startCalibration()">기준점 보정</button>
+                    <button class="abtn" onclick="toggleAlert()">경고음 <span id="alertTxt">켜짐</span></button>
+                </div>
+            </div>
+
+            <div class="sli-area" id="sliArea">
+                <div class="sli-grid">
+                    <div class="sli-item"><label>좌 등</label><input type="range" min="0" max="100" value="70" oninput="manSet(0,+this.value)"></div>
+                    <div class="sli-item"><label>우 등</label><input type="range" min="0" max="100" value="68" oninput="manSet(1,+this.value)"></div>
+                    <div class="sli-item"><label>좌 엉덩이</label><input type="range" min="0" max="100" value="58" oninput="manSet(2,+this.value)"></div>
+                    <div class="sli-item"><label>우 엉덩이</label><input type="range" min="0" max="100" value="61" oninput="manSet(3,+this.value)"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay">
+        <div class="stats-card">
+            <div class="st-header">
+                <div>
+                    <div class="st-title">세션 결과 리포트</div>
+                    <div class="st-sub" id="stSub">세션 종료 · 총 시간 —</div>
+                </div>
+                <button class="st-close" onclick="justCloseOverlay()">✕</button>
+            </div>
+
+            <div class="st-big3">
+                <div class="big-card g"><div class="big-v" id="bScore">—</div><div class="big-l">자세 점수</div></div>
+                <div class="big-card a"><div class="big-v" id="bGoodT">—</div><div class="big-l">바른자세 유지</div></div>
+                <div class="big-card r"><div class="big-v" id="bAlert">—</div><div class="big-l">경고 횟수</div></div>
+            </div>
+
+            <div class="st-section-title">자세 상태 타임라인</div>
+            <div class="timeline-wrap">
+                <div class="timeline-legend">
+                    <div class="tleg"><div class="tleg-dot" style="background:var(--green)"></div>올바른 자세</div>
+                    <div class="tleg"><div class="tleg-dot" style="background:var(--amber)"></div>자세 주의</div>
+                    <div class="tleg"><div class="tleg-dot" style="background:var(--red)"></div>자세 불량</div>
+                </div>
+                <div class="chart-scroll">
+                    <canvas id="timelineCanvas" height="45"></canvas>
+                </div>
+            </div>
+
+            <div class="two-col-stats">
+                <div>
+                    <div class="st-section-title">자세 유형별 비율</div>
+                    <div class="ratio-row">
+                        <div class="donut-wrap">
+                            <canvas id="donutCanvas" width="140" height="140"></canvas>
+                            <div class="donut-center">
+                                <div class="donut-pct" id="dPct">—</div>
+                                <div class="donut-lbl">올바름</div>
+                            </div>
+                        </div>
+                        <div class="ratio-detail">
+                            <div class="rbar-row">
+                                <span class="rbar-label">올바른 자세</span>
+                                <div class="rbar-track"><div class="rbar-fill" id="rbGood" style="background:var(--green);width:0%"></div></div>
+                                <span class="rbar-num" id="rnGood">0%</span>
+                            </div>
+                            <div class="rbar-row">
+                                <span class="rbar-label">자세 주의</span>
+                                <div class="rbar-track"><div class="rbar-fill" id="rbWarn" style="background:var(--amber);width:0%"></div></div>
+                                <span class="rbar-num" id="rnWarn">0%</span>
+                            </div>
+                            <div class="rbar-row">
+                                <span class="rbar-label">자세 불량</span>
+                                <div class="rbar-track"><div class="rbar-fill" id="rbBad" style="background:var(--red);width:0%"></div></div>
+                                <span class="rbar-num" id="rnBad">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="st-section-title">압력 센서 평균 밀착도</div>
+                    <div class="sensor-avgs">
+                        <div class="savg-row">
+                            <span class="savg-lbl">좌 등</span>
+                            <div class="savg-track"><div class="savg-fill" id="sb0" style="background:#60a5fa;width:0%"></div></div>
+                            <span class="savg-num" id="sn0">0</span>
+                        </div>
+                        <div class="savg-row">
+                            <span class="savg-lbl">우 등</span>
+                            <div class="savg-track"><div class="savg-fill" id="sb1" style="background:#3b82f6;width:0%"></div></div>
+                            <span class="savg-num" id="sn1">0</span>
+                        </div>
+                        <div class="savg-row">
+                            <span class="savg-lbl">좌 엉덩이</span>
+                            <div class="savg-track"><div class="savg-fill" id="sb2" style="background:#6366f1;width:0%"></div></div>
+                            <span class="savg-num" id="sn2">0</span>
+                        </div>
+                        <div class="savg-row">
+                            <span class="savg-lbl">우 엉덩이</span>
+                            <div class="savg-track"><div class="savg-fill" id="sb3" style="background:#4f46e5;width:0%"></div></div>
+                            <span class="savg-num" id="sn3">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="st-section-title">불량 원인 분석 통계 세부 리포트</div>
+            <div class="neck-detail-table">
+                <div class="ndt-row header">
+                    <span>항목 (불량 상태 구분)</span>
+                    <span>누적 지속시간</span>
+                    <span>전체 대비 비율</span>
+                </div>
+                <div class="ndt-row">
+                    <span>목 전방 변위 (거북목 단독)</span>
+                    <div style="display:none;" id="ndtNeckCnt"></div> <span id="ndtNeckSec">—</span>
+                    <span id="ndtNeckPct">—</span>
+                </div>
+                <div class="ndt-row">
+                    <span>좌우 어깨 비대칭 틀어짐</span>
+                    <div style="display:none;" id="ndtShoulderCnt"></div>
+                    <span id="ndtShoulderSec">—</span>
+                    <span id="ndtShoulderPct">—</span>
+                </div>
+                <div class="ndt-row">
+                    <span>거북목 + 어깨 복합 불량</span>
+                    <div style="display:none;" id="ndtBothCnt"></div>
+                    <span id="ndtBothSec">—</span>
+                    <span id="ndtBothPct">—</span>
+                </div>
+                <div class="ndt-row">
+                    <span>다리 꼬고 앉음 (비대칭 골반)</span>
+                    <div style="display:none;" id="ndtLegCnt"></div>
+                    <span>센서 실시간</span>
+                    <span>카운트 감지</span>
+                </div>
+                <div class="ndt-row">
+                    <span>한쪽으로 기대기 (등 좌우 불균형)</span>
+                    <div style="display:none;" id="ndtLeanCnt"></div>
+                    <span>센서 실시간</span>
+                    <span>카운트 감지</span>
+                </div>
+                <div class="ndt-row">
+                    <span>구부정한 자세 (등 압력 소실)</span>
+                    <div style="display:none;" id="ndtSlouchCnt"></div>
+                    <span>센서 실시간</span>
+                    <span>카운트 감지</span>
+                </div>
+                <div class="ndt-row">
+                    <span>걸터앉음 (비정상 무게중심)</span>
+                    <div style="display:none;" id="ndtPerchCnt"></div>
+                    <span>센서 실시간</span>
+                    <span>카운트 감지</span>
+                </div>
+                <div class="ndt-row" style="background:rgba(255,255,255,0.02)">
+                    <span>웹캠 기준점 세팅 여부</span>
+                    <span id="ndtCalibStatus" style="font-weight:600;color:var(--green)">미완료</span>
+                    <span>—</span>
+                </div>
+            </div>
+
+            <!-- 인사이트 카드 -->
+            <div class="st-section-title" id="insightTitle" style="display:none">핵심 인사이트</div>
+            <div class="insight-grid" id="insightGrid"></div>
+
+            <!-- 자세 문제 랭킹 -->
+            <div class="st-section-title" id="rankTitle" style="display:none">자세 문제 랭킹</div>
+            <div class="rank-list" id="rankList"></div>
+
+            <!-- 맞춤형 피드백 -->
+            <div class="st-section-title" id="fbTitle" style="display:none">맞춤형 피드백</div>
+            <div class="fb-list" id="fbList"></div>
+
+            <div class="st-actions">
+                <button class="sact" onclick="closeStats()">🔄 다시 시작</button>
+                <button class="sact pri" onclick="exportStats()">💾 세션 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+// ═══════════════════════════════════════════════════
+// 상수
+// ═══════════════════════════════════════════════════
+const SHOULDER_SLOPE_THRESHOLD = 0.15;
+const NECK_RATIO_THRESHOLD = 0.03;
+const CALIBRATION_FRAMES = 15;
+const CONSEC_THRESHOLD = 5.0;
+const GOOD_POSE_COOLDOWN = 2.0;
+const GOOD_HOLD_REQUIRED = 5.0; // 바른 자세가 이 시간(초) 이상 유지돼야 비로소 'good'으로 인정
+const AWAY_LIMIT = 30;
+
+// 압력 센서 채널 인덱스 (의자 좌우 4개 센서)
+const PRESSURE_BACK_L = 0;   // 좌 등
+const PRESSURE_BACK_R = 1;   // 우 등
+const PRESSURE_HIP_L  = 2;   // 좌 엉덩이
+const PRESSURE_HIP_R  = 3;   // 우 엉덩이
+// 파이썬 원본과 동일한 임계값
+const PRESSURE_HIP_IMBALANCE_RATIO  = 0.25; // 좌우 불균형 비율 (엉덩이/등 공통)
+const PRESSURE_BACK_U_SLOUCH_RATIO  = 0.10; // 등/엉덩이 압력비가 기준의 10% 미만 → 구부정
+const PRESSURE_PERCHING_LIMIT = 20;          // 등 둘 다 이 값 미만이면 걸터앉기
+
+const GM=30, GX=80, WM=15, WX=90;
+
+// ═══════════════════════════════════════════════════
+// 전역 상태
+// ═══════════════════════════════════════════════════
+let vals = [70,68,58,61]; // [좌등, 우등, 좌엉덩이, 우엉덩이]
+let sessionRunning = true;
+let connected=false, alertOn=true, camOn=false, simTimer=null;
+let port=null, reader=null, serialBuf='';
+let mode='auto';
+
+// 세션 통계
+let totalSec=0, goodSec=0, alertCnt=0;
+let totalS=0, goodS=0, warnS=0, badS=0;
+let sAcc=[0,0,0,0];
+let timeline=[], scoreHist=[], lastState='good';
+let timelineHead = 0; // 타임라인 링버퍼 헤드
+// 리포트용 집계
+let poseTagCounts = {};   // 불량 자세 태그별 프레임 수
+let neckRatioSum = 0, neckRatioN = 0; // 거북목 심각도 평균
+let lastNeckRatio = 0;    // 직전 프레임 거북목 비율
+let pressureFrameCount = 0, backSumAll = 0; // 등 압력 평균용
+
+// 거북목 세부 통계
+let neckCount=0, shoulderCount=0, bothCount=0, pressureCount=0;
+let legCrossCount=0, slouchCount=0, perchCount=0;
+let shoulderLeanCount=0; // 왼/오른쪽으로 기대기 횟수
+let awayCount=0;
+let neckTotalSec=0, shoulderTotalSec=0, bothTotalSec=0;
+let lastBadType=null;
+
+// 거북목 감지 상태
+let poseBaseline = null;
+let calibrating = false;
+let calibFrames = [];
+let calibBadCount = 0;
+let badPoseSince = null;
+let goodPoseSince = null;
+let alertSent = false;
+let confirmedStatus = 'ok'; // 5초 유지 확인을 통과한 '확정' 상태 (good 인정 안정화용)
+let goodHoldSince = null;   // 바른 자세가 연속 유지되기 시작한 시각
+let lastConfirmedBadType = null; // 직전 확정 불량 유형 (교정 중 카운트 이어쓰기용)
+let badAccumSec = 0;        // 실제 불량 자세인 시간의 누적 (교정으로 잠깐 끊겨도 유지)
+let pressureAccumSec = 0;   // 실제 압력 불량 시간의 누적
+let lastFrameTs = null;     // 직전 프레임 시각 (delta 계산용)
+let badNextAlertAt = CONSEC_THRESHOLD;      // 다음 자세 알림이 울릴 누적 임계 (5초마다 반복)
+let pressureNextAlertAt = CONSEC_THRESHOLD; // 다음 압력 알림이 울릴 누적 임계
+let pressureBaseline = [0,0,0,0];
+let pressureStd = [1,1,1,1];
+let ewma = [0,0,0,0];
+let rollingBuf = [[],[],[],[]];
+
+const ROLLING_N = 10;
+const EWMA_ALPHA = 0.2;
+
+let pressureCalibBuf = [];
+let pressureBadSince = null;
+let pressureAlertSent = false;
+let mpCamera = null;
+
+// ═══════════════════════════════════════════════════
+// DOM 캐시 — 핫패스(30fps)에서 매번 getElementById 호출하는 비용 제거
+// ═══════════════════════════════════════════════════
+const DOM = {};
+function initDomCache(){
+  const ids = [
+    'clk','mGood','mPct','chip','toast','logPanel',
+    'calibBar','calibSub','calibBanner','ndtCalibStatus','psoPanel',
+    'psoNeck','psoSlope','psoBad','psoState',
+    'connBtn','connLbl','camBtn','liveBadge','wcvid','wcph','wcframe','poseCanvas',
+    'alertTxt','overlay','stSub','bScore','bGoodT','bAlert','dPct',
+    'rbGood','rnGood','rbWarn','rnWarn','rbBad','rnBad',
+    'donutCanvas','timelineCanvas',
+    'ndtNeckCnt','ndtNeckSec','ndtNeckPct',
+    'ndtShoulderCnt','ndtShoulderSec','ndtShoulderPct',
+    'ndtBothCnt','ndtBothSec','ndtBothPct',
+    'ndtLegCnt','ndtLeanCnt','ndtSlouchCnt','ndtPerchCnt',
+    'insightTitle','insightGrid','rankTitle','rankList','fbTitle','fbList'
+  ];
+  ids.forEach(id => { DOM[id] = document.getElementById(id); });
+  // 압력 센서 셀들 (인덱스 배열로)
+  DOM.sv = []; DOM.sc = []; DOM.sn = []; DOM.sb = [];
+  DOM.glow = []; DOM.dot = []; DOM.ring = [];
+  for(let i=0;i<4;i++){
+    DOM.sv[i] = document.getElementById('sv'+i);
+    DOM.sc[i] = document.getElementById('sc'+i);
+    DOM.sn[i] = document.getElementById('sn'+i);
+    DOM.sb[i] = document.getElementById('sb'+i);
+    DOM.glow[i] = document.getElementById('glow'+i);
+    DOM.dot[i] = document.getElementById('dot'+i);
+    DOM.ring[i] = document.getElementById('ring'+i);
+  }
+}
+
+// 아두이노 직렬연결 토글
+async function toggleConn(){
+  if(!connected){
+    try{
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 9600 });
+      connected = true;
+      DOM.connBtn.classList.add('on');
+      DOM.connLbl.textContent = '아두이노 연결됨';
+      addLog('아두이노 장치 연동 성공', 'ok');
+      readSerialLoop();
+    }catch(e){
+      alert('연결 실패: ' + e.message);
+    }
+  } else {
+    connected = false;
+    if(reader) { try{await reader.cancel(); reader.releaseLock();}catch(err){} }
+    if(port) { try{await port.close();}catch(err){} }
+    port = null; reader = null;
+    DOM.connBtn.classList.remove('on');
+    DOM.connLbl.textContent = '아두이노 연결';
+    addLog('아두이노 연결이 해제되었습니다', 'warn');
+  }
+}
+
+async function readSerialLoop(){
+  while(connected && port.readable){
+    try{
+      reader = port.readable.getReader();
+      while(true){
+        const { value, done } = await reader.read();
+        if(done) break;
+        if(value){
+          const text = new TextDecoder().decode(value);
+          serialBuf += text;
+          let lines = serialBuf.split('\n');
+          serialBuf = lines.pop();
+          for(const l of lines){
+            const p = l.trim().split(',').map(Number);
+            if(p.length===4 && p.every(n=>!isNaN(n))){
+              vals[0] = Math.max(0,Math.min(100,Math.round(p[0])));
+              vals[1] = Math.max(0,Math.min(100,Math.round(p[1])));
+              vals[2] = Math.max(0,Math.min(100,Math.round(p[2])));
+              vals[3] = Math.max(0,Math.min(100,Math.round(p[3])));
+              updatePressureUI();
+            }
+          }
+        }
+      }
+    }catch(e){
+      console.error(e);
+      break;
+    }finally{
+      if(reader){reader.releaseLock();}
+    }
+  }
+}
+
+const MAX_LOG_ROWS = 200;
+function addLog(msg, type){
+  const p = DOM.logPanel;
+  const d = new Date();
+  const ts = `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
+  const row = document.createElement('div');
+  row.className = 'log-row';
+  row.innerHTML = `<span class="log-time">${ts}</span><span class="log-msg ${type||'ok'}">${msg}</span>`;
+  p.appendChild(row);
+  // 오래된 로그 자동 제거 — 장시간 사용 시 메모리 무한 증가 방지
+  while(p.children.length > MAX_LOG_ROWS) p.removeChild(p.firstChild);
+  p.scrollTop = p.scrollHeight;
+}
+
+function p2(n){ return String(n).padStart(2,'0'); }
+function gc(v){ return v>=GM&&v<=GX?'good':(v>=WM&&v<=WX?'warn':'bad'); }
+function hex(s){ return {'good':'#3ecf8e','warn':'#f5a824','bad':'#f5534f'}[s]; }
+
+function requestNotifPermission(){
+  if(!('Notification' in window)){
+    addLog('이 브라우저는 데스크톱 알림을 지원하지 않습니다', 'warn');
+    return;
+  }
+  if(Notification.permission === 'granted') return;
+  if(Notification.permission === 'denied'){
+    addLog('데스크톱 알림이 차단됨 — 브라우저 주소창의 알림 설정에서 허용해주세요', 'warn');
+    return;
+  }
+  Notification.requestPermission().then(p=>{
+    if(p === 'granted') addLog('데스크톱 알림이 허용되었습니다', 'ok');
+    else addLog('데스크톱 알림 권한이 거부됨 — 화면 내 알림만 표시됩니다', 'warn');
+  }).catch(()=>{});
+}
+
+// 데스크톱(시스템) 알림 — 다른 창을 보고 있어도 화면 구석에 뜸
+let _lastDesktopNotif = 0;
+function showDesktopNotif(msg){
+  if(!('Notification' in window)) return;
+  if(Notification.permission !== 'granted') return;
+  // 알림 폭주 방지 — 직전 알림과 최소 1.5초 간격
+  const now = Date.now();
+  if(now - _lastDesktopNotif < 1500) return;
+  _lastDesktopNotif = now;
+  try{
+    const n = new Notification('KW 바른자세', {
+      body: msg,
+      tag: 'kw-posture',      // 같은 tag는 덮어써져서 알림이 쌓이지 않음
+      renotify: true,         // 같은 tag라도 다시 알림 (소리/진동)
+      requireInteraction: false
+    });
+    // 4초 뒤 자동 닫기
+    setTimeout(()=>{ try{ n.close(); }catch(e){} }, 4000);
+    n.onclick = ()=>{ try{ window.focus(); n.close(); }catch(e){} };
+  }catch(e){ /* 일부 모바일 브라우저는 생성자 호출 미지원 */ }
+}
+
+let _toastServerAvailable = true; // 5050 토스트 서버가 한 번 실패하면 더는 호출 안 함
+function showToast(msg, desktop){
+  const t=DOM.toast;
+  t.textContent=msg;
+  t.classList.add('on');
+  setTimeout(()=>t.classList.remove('on'), 4000);
+  // 경고성 알림은 데스크톱 알림도 함께 표시
+  if(desktop) showDesktopNotif(msg);
+  if(_toastServerAvailable){
+    fetch('http://localhost:5050/toast', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message: msg})
+    }).catch(()=>{ _toastServerAvailable = false; });
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// 세션 타이머
+// ═══════════════════════════════════════════════════
+setInterval(()=>{
+  if(!sessionRunning) return;
+  totalSec++;
+  if(lastState==='good') goodSec++;
+  const h=p2(Math.floor(totalSec/3600));
+  const m=p2(Math.floor((totalSec%3600)/60));
+  const s=p2(totalSec%60);
+  DOM.clk.textContent=`${h}:${m}:${s}`;
+  const gm=p2(Math.floor(goodSec/60)), gs=p2(goodSec%60);
+  DOM.mGood.textContent=`${gm}:${gs}`;
+},1000);
+
+// ═══════════════════════════════════════════════════
+// 압력 센서 UI 업데이트
+// ═══════════════════════════════════════════════════
+const SCELL_CLS = {'good':'scell ok','warn':'scell wn','bad':'scell bd'};
+// 직전 값 캐시 — 동일 값이면 DOM 업데이트 스킵
+const _prevPressure = { vals:[-1,-1,-1,-1], states:['','','',''] };
+
+function updatePressureUI(){
+  for(let i=0;i<4;i++){
+    const v = vals[i];
+    const s = gc(v);
+    const valChanged = _prevPressure.vals[i] !== v;
+    const stateChanged = _prevPressure.states[i] !== s;
+
+    if(valChanged){
+      DOM.sv[i].textContent = v;
+      _prevPressure.vals[i] = v;
+    }
+    if(stateChanged){
+      DOM.sc[i].className = SCELL_CLS[s];
+      _prevPressure.states[i] = s;
+    }
+
+    // 컬러/투명도는 값/상태가 바뀔 때만 갱신
+    if(valChanged || stateChanged){
+      const h = hex(s);
+      const p = v / 100;
+      const g = DOM.glow[i];
+      if(g){
+        g.style.fill = h;
+        g.style.opacity = (0.05 + p * 0.4).toFixed(2);
+      }
+      const d = DOM.dot[i];
+      if(d){
+        d.style.fill = h;
+        d.style.filter = `drop-shadow(0 0 ${(3 + p * 4).toFixed(1)}px ${h})`;
+      }
+      const r = DOM.ring[i];
+      if(r){
+        r.style.stroke = h;
+        r.style.opacity = s !== 'good' ? '0.55' : '0';
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// 자세 상태 chip + 통계 업데이트
+// ═══════════════════════════════════════════════════
+function applyOverallState(overall, poseText, badType){
+  totalS++;
+  if(overall==='good'){
+    goodS++;
+    lastBadType=null;
+  } else if(overall==='warn'){
+    warnS++;
+    trackBadType(badType, poseText);
+  } else {
+    badS++;
+    if(lastState!=='bad'){
+      alertCnt++;
+    }
+    trackBadType(badType, poseText);
+  }
+  lastState=overall;
+  // in-place 업데이트 (배열 새로 만들지 않음)
+  sAcc[0]+=vals[0]; sAcc[1]+=vals[1]; sAcc[2]+=vals[2]; sAcc[3]+=vals[3];
+
+  // ── 리포트용 집계 ──
+  // pose 태그별 프레임 카운트 (불량일 때만). "거북목 + 어깨" 같은 복합은 분리해서 각각 카운트
+  if(overall === 'warn' || overall === 'bad'){
+    const tags = poseText.split('+');
+    for(let i=0;i<tags.length;i++){
+      const tag = tags[i].trim();
+      if(tag && tag !== '바른 자세' && tag.indexOf('교정 중') < 0){
+        poseTagCounts[tag] = (poseTagCounts[tag] || 0) + 1;
+      }
+    }
+  }
+  // 거북목일 때 neck_ratio 누적 (평균 심각도 계산용)
+  if(poseText.indexOf('거북목') >= 0 && lastNeckRatio > 0){
+    neckRatioSum += lastNeckRatio;
+    neckRatioN++;
+  }
+  // 압력 전반부/후반부 등 압력 추이용 (등 좌/우 합)
+  pressureFrameCount++;
+  backSumAll += (vals[PRESSURE_BACK_L] + vals[PRESSURE_BACK_R]);
+
+  // mPct는 매 프레임이 아니라 ~30프레임에 1번 (사람 눈으로 더 자주 갱신할 필요 없음)
+  if((totalS & 31) === 0){
+    const totalFrames = goodS + warnS + badS || 1;
+    DOM.mPct.textContent = Math.round((goodS / totalFrames) * 100) + '%';
+  }
+
+  // 타임라인: 1200개 넘으면 shift() 대신 인덱스 회전 — shift는 O(n)
+  if(timeline.length < 1200){
+    timeline.push(overall);
+  } else {
+    // 슬라이딩 윈도우: 가장 오래된 것을 덮어쓰기
+    timeline[timelineHead] = overall;
+    timelineHead = (timelineHead + 1) % 1200;
+  }
+}
+
+function trackBadType(bt, txt){
+  if(!bt) return;
+  if(bt==='neck'){ neckTotalSec += 0.03; if(lastBadType!=='neck'){neckCount++; lastBadType='neck';} }
+  if(bt==='shoulder'){ shoulderTotalSec += 0.03; if(lastBadType!=='shoulder'){shoulderCount++; lastBadType='shoulder';} }
+  if(bt==='both'){ bothTotalSec += 0.03; if(lastBadType!=='both'){bothCount++; lastBadType='both';} }
+}
+
+function now_ts(){ return Date.now()/1000; }
+
+function startCalibration(){
+  calibFrames = [];
+  calibBadCount = 0;
+  pressureCalibBuf = [];
+  poseBaseline = null;
+  badPoseSince = null;
+  goodPoseSince = null;
+  alertSent = false;
+  confirmedStatus = 'ok';
+  goodHoldSince = null;
+  lastConfirmedBadType = null;
+  badAccumSec = 0;
+  pressureAccumSec = 0;
+  lastFrameTs = null;
+  badNextAlertAt = CONSEC_THRESHOLD;
+  pressureNextAlertAt = CONSEC_THRESHOLD;
+  pressureBadSince = null;
+  pressureAlertSent = false;
+  calibrating = true;
+
+  DOM.calibBar.style.width = '0%';
+  DOM.calibSub.textContent = '바른 자세를 유지하세요...';
+  DOM.calibBanner.classList.add('on');
+  DOM.psoPanel.classList.remove('on');
+  addLog('기준점 보정 시작 — 바른 자세로 앉아주세요', 'warn');
+}
+
+// ── analyze ──
+function analyzePose(landmarks){
+  const ls = landmarks[11];
+  const rs = landmarks[12];
+  const leye = landmarks[1];
+  const reye = landmarks[2];
+
+  const shoulder_mid_y = (ls.y + rs.y) / 2;
+  const eye_mid_y = (leye.y + reye.y) / 2;
+  const eye_shoulder_dist = Math.abs(shoulder_mid_y - eye_mid_y);
+  const shoulder_slope = Math.abs(ls.y - rs.y);
+
+  const is_away = vals[0] < AWAY_LIMIT && vals[1] < AWAY_LIMIT && vals[2] < AWAY_LIMIT && vals[3] < AWAY_LIMIT;
+  if(is_away){
+    goodPoseSince = null;
+    badPoseSince = null;
+    if(calibrating){
+      failCalibration("자리비움");
+      return;
+    }
+    updateChip('idle', '자리비움 (압력 미감지)');
+    return;
+  }
+
+  if(calibrating){
+    if(shoulder_slope > SHOULDER_SLOPE_THRESHOLD){
+      calibBadCount++;
+      if(calibBadCount > 5){
+        failCalibration("자세 불안정");
+        return;
+      }
+    }
+    calibFrames.push(eye_shoulder_dist);
+    pressureCalibBuf.push([vals[0],vals[1],vals[2],vals[3]]);
+
+    const done = calibFrames.length;
+    DOM.calibBar.style.width = (done / CALIBRATION_FRAMES * 100) + '%';
+    const calibMsg = `측정 중... (${done}/${CALIBRATION_FRAMES})`;
+    DOM.calibSub.textContent = calibMsg;
+    updateChip('idle', calibMsg);
+
+    if(calibFrames.length >= CALIBRATION_FRAMES){
+      let sum = 0;
+      for(let i=0;i<calibFrames.length;i++) sum += calibFrames[i];
+      poseBaseline = sum / calibFrames.length;
+      // 압력 평균/표준편차 — 한 번에 누적
+      const n = pressureCalibBuf.length;
+      const means = [0,0,0,0];
+      for(let i=0;i<n;i++){
+        const r = pressureCalibBuf[i];
+        means[0]+=r[0]; means[1]+=r[1]; means[2]+=r[2]; means[3]+=r[3];
+      }
+      for(let i=0;i<4;i++) means[i] /= n;
+      const vars_ = [0,0,0,0];
+      for(let i=0;i<n;i++){
+        const r = pressureCalibBuf[i];
+        vars_[0] += (r[0]-means[0])**2;
+        vars_[1] += (r[1]-means[1])**2;
+        vars_[2] += (r[2]-means[2])**2;
+        vars_[3] += (r[3]-means[3])**2;
+      }
+      pressureBaseline = means;
+      pressureStd = [
+        Math.max(Math.sqrt(vars_[0]/n), 1.0),
+        Math.max(Math.sqrt(vars_[1]/n), 1.0),
+        Math.max(Math.sqrt(vars_[2]/n), 1.0),
+        Math.max(Math.sqrt(vars_[3]/n), 1.0),
+      ];
+      ewma = [means[0], means[1], means[2], means[3]];
+      calibrating = false;
+
+      DOM.calibBanner.classList.remove('on');
+      DOM.psoPanel.classList.add('on');
+      DOM.ndtCalibStatus.textContent = '완료 ✓';
+      addLog('기준점 보정 완료', 'ok');
+      showToast('✅ 기준점 보정이 성공적으로 완료되었습니다.');
+    }
+    return;
+  }
+
+  if(poseBaseline === null){
+    updateChip('idle', '기준점 보정이 필요합니다.');
+    return;
+  }
+
+  DOM.psoNeck.textContent = eye_shoulder_dist.toFixed(3);
+  DOM.psoSlope.textContent = shoulder_slope.toFixed(3);
+
+  // 거북목 비율 (파이썬 neck_ratio 와 동일): (기준 - 현재) / 기준
+  lastNeckRatio = poseBaseline > 0 ? (poseBaseline - eye_shoulder_dist) / poseBaseline : 0;
+
+  const neck_bad = (eye_shoulder_dist < (poseBaseline - NECK_RATIO_THRESHOLD));
+  const shoulder_bad = (shoulder_slope > SHOULDER_SLOPE_THRESHOLD);
+
+  let status = 'ok';
+  let pose_text = '바른 자세';
+  let alert = false;
+
+  if(neck_bad && shoulder_bad){
+    pose_text = '거북목 + 어깨 틀어짐';
+    status = 'danger';
+  } else if(neck_bad){
+    pose_text = '거북목 발생';
+    status = 'danger';
+  } else if(shoulder_bad){
+    pose_text = '어깨 균형 비대칭';
+    status = 'danger';
+  }
+
+  // now_ts()를 한 번만 호출
+  const ts = Date.now() / 1000;
+  // 프레임 간 경과 시간 (delta). 첫 프레임이거나 비정상적으로 크면 0.03초로 보정
+  let dt = (lastFrameTs === null) ? 0 : (ts - lastFrameTs);
+  if(dt < 0 || dt > 1.0) dt = 0.03;
+  lastFrameTs = ts;
+
+  if(status === 'danger'){
+    // 실제 불량 자세 → 누적 시간 증가 (잠깐 교정으로 끊겨도 누적값은 유지됨)
+    badAccumSec += dt;
+    goodPoseSince = null;
+    DOM.psoBad.textContent = badAccumSec.toFixed(1) + '초';
+
+    // 누적이 5초를 넘을 때마다 반복 알림 (5초, 10초, 15초...)
+    if(badAccumSec >= badNextAlertAt){
+      alert = true;
+      badNextAlertAt += CONSEC_THRESHOLD;
+    }
+  } else {
+    // 바른 자세로 감지됨 — 단, 5초 유지로 확정되기 전까지는 누적값을 리셋하지 않음
+    if(goodPoseSince === null) goodPoseSince = ts;
+    const good_elapsed = ts - goodPoseSince;
+    DOM.psoBad.textContent = badAccumSec.toFixed(1) + '초';
+    if(good_elapsed >= GOOD_HOLD_REQUIRED){
+      // 바른 자세 5초 이상 유지 → 비로소 불량 누적 리셋 + 알림 재무장
+      badAccumSec = 0;
+      badNextAlertAt = CONSEC_THRESHOLD;
+      DOM.psoBad.textContent = '0.0초';
+    }
+    pose_text = '바른 자세';
+    status = 'ok';
+    alert = false;
+  }
+
+  const pressure_status = analyzePressure();
+  if(pressure_status){
+    // 실제 압력 불량 → 누적 (잠깐 끊겨도 유지)
+    pressureAccumSec += dt;
+    if(status === 'ok'){
+      pose_text = pressure_status;
+      status = 'warn';
+    } else {
+      pose_text = `${pose_text} + ${pressure_status}`;
+    }
+    // 압력 불량도 5초마다 반복 알림
+    if(pressureAccumSec >= pressureNextAlertAt){
+      alert = true;
+      pressureNextAlertAt += CONSEC_THRESHOLD;
+    }
+  } else {
+    // 압력이 정상이어도, 바른 자세 5초 확정 전까지는 누적값 유지 (위 good_elapsed 분기에서 함께 리셋)
+    if(status === 'ok' && goodPoseSince !== null && (ts - goodPoseSince) >= GOOD_HOLD_REQUIRED){
+      pressureAccumSec = 0;
+      pressureNextAlertAt = CONSEC_THRESHOLD;
+    }
+  }
+
+  DOM.psoState.textContent = pose_text;
+  let overall = status === 'ok' ? 'good' : status === 'danger' ? 'bad' : 'warn';
+
+  // 실제 감지된 자세 기준으로 불량 유형 분류 (화면 표시 텍스트가 바뀌기 전에 먼저 계산)
+  let _badType = null;
+  {
+    const hasNeck = pose_text.indexOf('거북목') >= 0;
+    const hasShoulder = pose_text.indexOf('어깨') >= 0;
+    if(hasNeck && hasShoulder) _badType = 'both';
+    else if(hasNeck) _badType = 'neck';
+    else if(hasShoulder) _badType = 'shoulder';
+    else if(pose_text.indexOf('다리') >= 0 || pose_text.indexOf('기대기') >= 0 || pose_text.indexOf('구부정') >= 0 || pose_text.indexOf('걸터') >= 0) _badType = 'pressure';
+  }
+
+  // ── 바른 자세 5초 유지 확인 ──
+  // 순간적으로 good이 떠도 GOOD_HOLD_REQUIRED(5초) 이상 연속 유지되기 전까지는
+  // 직전 확정 상태(confirmedStatus)를 유지한다. 잠깐 스쳐가는 good을 인정하지 않음.
+  if(overall === 'good'){
+    if(goodHoldSince === null) goodHoldSince = ts;
+    const heldFor = ts - goodHoldSince;
+    if(heldFor >= GOOD_HOLD_REQUIRED){
+      confirmedStatus = 'good';   // 5초 이상 유지 → 정식으로 good 확정
+    }
+    // 아직 5초 미만이면 직전 확정 상태를 그대로 사용
+    if(confirmedStatus !== 'good'){
+      overall = confirmedStatus;
+      // 교정 중에는 직전 불량 유형을 그대로 이어받아 카운트가 끊기지 않게 함
+      _badType = lastConfirmedBadType;
+      // 표시 텍스트는 카운트다운 안내 (단, 통계 분류는 위에서 유지됨)
+      const remain = Math.max(0, GOOD_HOLD_REQUIRED - heldFor).toFixed(1);
+      pose_text = `자세 교정 중 (${remain}초 유지 필요)`;
+      DOM.psoState.textContent = pose_text;
+    } else {
+      _badType = null; // good 확정 시에만 불량 유형 없음
+    }
+  } else {
+    // 불량/경고가 다시 감지되면 good 유지 타이머 리셋 + 확정 상태/유형 갱신
+    goodHoldSince = null;
+    confirmedStatus = overall;
+    lastConfirmedBadType = _badType; // 현재 불량 유형 기억 (교정 중 이어쓰기용)
+  }
+
+  updateChip(overall, pose_text);
+
+  applyOverallState(overall, pose_text, _badType);
+
+  if(alert){
+    addLog(`⚠ 알림: ${pose_text}`, 'danger');
+    showToast(`⚠ ${pose_text} — 자세를 바르게 해주세요`, true);
+    if(alertOn) beep();
+  }
+}
+
+function failCalibration(reason){
+  calibrating = false;
+  addLog(`캘리브레이션 실패: ${reason}`, 'warn');
+  showToast(`⚠ ${reason} 감지 — 바른 자세로 앉은 후 다시 시도해주세요`);
+  DOM.calibBanner.classList.remove('on');
+  updateChip('idle', '캘리브레이션 실패');
+}
+
+// ── analyze_pressure (파이썬 _analyze_pressure 와 동일 로직) ──
+function analyzePressure(){
+  if(poseBaseline === null) return null;
+
+  const v0 = vals[0], v1 = vals[1], v2 = vals[2], v3 = vals[3];
+
+  // 롤링 버퍼 (smoothed — 현재 판별엔 미사용이나 파이썬과 구조 일치 위해 유지)
+  for(let i=0;i<4;i++){
+    const buf = rollingBuf[i];
+    buf.push(vals[i]);
+    if(buf.length > ROLLING_N) buf.shift();
+  }
+
+  // EWMA in-place (파이썬과 동일하게 판별에 EWMA 값 사용)
+  ewma[0] = EWMA_ALPHA * v0 + (1 - EWMA_ALPHA) * ewma[0];
+  ewma[1] = EWMA_ALPHA * v1 + (1 - EWMA_ALPHA) * ewma[1];
+  ewma[2] = EWMA_ALPHA * v2 + (1 - EWMA_ALPHA) * ewma[2];
+  ewma[3] = EWMA_ALPHA * v3 + (1 - EWMA_ALPHA) * ewma[3];
+
+  // s = ewma
+  const hip_l  = ewma[PRESSURE_HIP_L];
+  const hip_r  = ewma[PRESSURE_HIP_R];
+  const back_l = ewma[PRESSURE_BACK_L];
+  const back_r = ewma[PRESSURE_BACK_R];
+  const mu = pressureBaseline;
+
+  // 1) 엉덩이 좌우 불균형 → 다리 꼬기 / 짝다리
+  const hip_total = hip_l + hip_r;
+  if(hip_total > 0 && Math.abs(hip_l - hip_r) > (hip_total * PRESSURE_HIP_IMBALANCE_RATIO)){
+    legCrossCount++;
+    return '다리 꼬기 / 짝다리';
+  }
+
+  // 2) 등 좌우 불균형 → 왼/오른쪽으로 기대기 (방향 표시)
+  const back_total = back_l + back_r;
+  if(back_total > 0 && Math.abs(back_l - back_r) > (back_total * PRESSURE_HIP_IMBALANCE_RATIO)){
+    const side = back_l > back_r ? '왼' : '오른';
+    shoulderLeanCount++;
+    return `${side}쪽으로 기대기`;
+  }
+
+  // 3) 등/엉덩이 압력비가 기준 대비 급감 → 구부정한 자세
+  if(hip_total > 0){
+    const back_ratio = back_total / hip_total;
+    const muHipSum = mu[PRESSURE_HIP_L] + mu[PRESSURE_HIP_R];
+    const back_ratio_ref = muHipSum > 0
+      ? (mu[PRESSURE_BACK_L] + mu[PRESSURE_BACK_R]) / muHipSum
+      : 0;
+    if(back_ratio_ref > 0 && back_ratio < back_ratio_ref * PRESSURE_BACK_U_SLOUCH_RATIO){
+      slouchCount++;
+      return '구부정한 자세';
+    }
+  }
+
+  // 4) 등 양쪽 모두 약함 → 걸터앉기
+  if(back_l < PRESSURE_PERCHING_LIMIT && back_r < PRESSURE_PERCHING_LIMIT){
+    perchCount++;
+    return '걸터앉기';
+  }
+
+  return null;
+}
+
+const CHIP_CLS = {'good':'chip good','warn':'chip warn','bad':'chip bad','idle':'chip idle'};
+let _lastChipStatus = null, _lastChipText = null;
+function updateChip(status, text){
+  if(_lastChipStatus !== status){
+    DOM.chip.className = CHIP_CLS[status] || 'chip idle';
+    _lastChipStatus = status;
+  }
+  if(_lastChipText !== text){
+    DOM.chip.textContent = text;
+    _lastChipText = text;
+  }
+}
+
+function beep(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator();
+    const g=ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.frequency.value=880;
+    o.type='sine';
+    g.gain.setValueAtTime(0.3,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);
+    o.start();
+    o.stop(ctx.currentTime+0.5);
+  }catch(e){}
+}
+
+// ── MediaPipe Pose 초기화 & 카메라 제어 ──
+async function toggleCam(){
+  if(!camOn){
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({video:true});
+      const vid=DOM.wcvid;
+      vid.srcObject=stream;
+      vid.classList.add('on');
+      DOM.wcph.style.display='none';
+      DOM.liveBadge.className='live-badge on';
+      DOM.camBtn.className='cam-btn stop';
+      DOM.camBtn.textContent='⛔ 카메라 중지';
+      camOn=true;
+      addLog('카메라 시작됨','ok');
+      requestNotifPermission();
+      initMediaPipe(vid, stream);
+    }catch(e){
+      alert('카메라 오류: '+e.message);
+    }
+  } else {
+    stopCam();
+  }
+}
+
+function stopCam(){
+  if(mpCamera){ try{mpCamera.stop();}catch(e){} mpCamera=null; }
+  const vid=DOM.wcvid;
+  if(vid.srcObject) vid.srcObject.getTracks().forEach(t=>t.stop());
+  vid.classList.remove('on');
+  DOM.wcph.style.display='flex';
+  DOM.liveBadge.className='live-badge';
+  DOM.camBtn.className='cam-btn pri';
+  DOM.camBtn.textContent='📷 카메라 시작';
+  DOM.psoPanel.classList.remove('on');
+  DOM.calibBanner.classList.remove('on');
+  updateChip('idle','대기 중');
+  camOn=false;
+  addLog('카메라 중지됨','warn');
+}
+
+function initMediaPipe(vid, stream){
+  const canvas = DOM.poseCanvas;
+  canvas.classList.add('on');
+  const ctx = canvas.getContext('2d');
+  const pose = new Pose({
+    locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`
+  });
+  pose.setOptions({
+    modelComplexity: 0,
+    smoothLandmarks: true,
+    enableSegmentation: false,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5,
+  });
+
+  const rect = DOM.wcframe.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  const cw = canvas.width, ch = canvas.height;
+  // 매 프레임 재사용할 스타일 객체
+  const CONN_STYLE = {color:'rgba(0,200,150,0.7)', lineWidth:2};
+  const LM_STYLE = {color:'rgba(0,255,200,0.9)', lineWidth:1, radius:3};
+
+  // 파이썬 원본과 동일 — 자세 분석에 필요한 상체 부위만 연결
+  const UPPER_CONNECTIONS = [
+    [11, 12],                          // 어깨 ~ 어깨
+    [11, 23], [12, 24], [23, 24],      // 어깨 ~ 골반, 골반 ~ 골반
+    [0, 1], [0, 4],                    // 코 ~ 눈 안쪽
+    [1, 2], [4, 5],                    // 눈 안쪽 ~ 바깥쪽
+  ];
+  // 위 연결에 등장하는 랜드마크 인덱스만 점으로 표시
+  const UPPER_LANDMARKS = [0, 1, 2, 4, 5, 11, 12, 23, 24];
+
+  pose.onResults(results=>{
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.save();
+    ctx.scale(-1,1);
+    ctx.drawImage(results.image, -cw, 0, cw, ch);
+    ctx.restore();
+
+    const lm = results.poseLandmarks;
+    if(lm){
+      // 연결선 (좌우 반전된 영상에 맞춰 x좌표 미러링)
+      ctx.strokeStyle = CONN_STYLE.color;
+      ctx.lineWidth = CONN_STYLE.lineWidth;
+      ctx.beginPath();
+      for(const [a, b] of UPPER_CONNECTIONS){
+        const p = lm[a], q = lm[b];
+        if(!p || !q) continue;
+        ctx.moveTo((1 - p.x) * cw, p.y * ch);
+        ctx.lineTo((1 - q.x) * cw, q.y * ch);
+      }
+      ctx.stroke();
+      // 관절 점
+      ctx.fillStyle = LM_STYLE.color;
+      for(const idx of UPPER_LANDMARKS){
+        const p = lm[idx];
+        if(!p) continue;
+        ctx.beginPath();
+        ctx.arc((1 - p.x) * cw, p.y * ch, LM_STYLE.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      analyzePose(lm);
+    } else if(camOn){
+      goodPoseSince = null;
+      updateChip('idle', '몸이 감지되지 않음 — 카메라에 상체가 보이게 해주세요');
+    }
+  });
+
+  mpCamera = new Camera(vid, {
+    onFrame: async()=>{ await pose.send({image: vid}); },
+    width:320, height:240,
+  });
+  mpCamera.start();
+}
+
+// ── 모드 전환 ──
+function setMode(m){
+  mode=m;
+  ['auto','manual','sim'].forEach(x=>{
+    document.getElementById('m'+x.charAt(0).toUpperCase()+x.slice(1)).className='mbtn'+(m===x?' on':'');
+  });
+  if(simTimer){ clearInterval(simTimer); simTimer=null; }
+  document.getElementById('sliArea').className='sli-area'+(m==='manual'?' on':'');
+
+  if(m==='sim'){
+    simTimer=setInterval(()=>{
+      for(let i=0;i<4;i++){
+        vals[i] = Math.max(0, Math.min(100, Math.round(vals[i] + (Math.random()-0.46)*9)));
+      }
+      updatePressureUI();
+      let overall = 'good';
+      for(let i=0;i<4;i++){
+        const s = gc(vals[i]);
+        if(s==='bad'){ overall='bad'; break; }
+        if(s==='warn') overall='warn';
+      }
+      updateChip(overall, overall==='good'?'올바른 자세':'자세 경고 가상 피드백');
+    },700);
+    updateChip('idle','시뮬레이션 모드');
+  }
+}
+
+function manSet(i,v){
+  vals[i]=v;
+  updatePressureUI();
+}
+
+function toggleAlert(){
+  alertOn=!alertOn;
+  DOM.alertTxt.textContent=alertOn?'켜짐':'꺼짐';
+}
+
+function endSession(){
+  if(simTimer){ clearInterval(simTimer); simTimer=null; }
+  sessionRunning = false;
+  wasCamOnBeforeReport = camOn; // 다시 시작 시 카메라 자동 재개 여부 판단용
+  if(camOn) stopCam();
+  calibrating = false;
+
+  const ov=DOM.overlay;
+  ov.style.display='flex';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>ov.classList.add('on')));
+
+  const h=p2(Math.floor(totalSec/3600)), m=p2(Math.floor((totalSec%3600)/60)), s=p2(totalSec%60);
+  DOM.stSub.textContent=`세션 종료 · 총 ${h}:${m}:${s}`;
+
+  const score=totalS>0?Math.round((goodS/totalS)*100):0;
+  DOM.bScore.textContent=score+'점';
+
+  const gm=p2(Math.floor(goodSec/60)), gs=p2(goodSec%60);
+  DOM.bGoodT.textContent=gm+':'+gs;
+  DOM.bAlert.textContent=alertCnt+'회';
+
+  const tot=goodS+warnS+badS||1;
+  const gPct=Math.round(goodS/tot*100), wPct=Math.round(warnS/tot*100), bPct=Math.round(badS/tot*100);
+
+  DOM.dPct.textContent=gPct+'%';
+  DOM.rbGood.style.width=gPct+'%';
+  DOM.rnGood.textContent=gPct+'%';
+  DOM.rbWarn.style.width=wPct+'%';
+  DOM.rnWarn.textContent=wPct+'%';
+  DOM.rbBad.style.width=bPct+'%';
+  DOM.rnBad.textContent=bPct+'%';
+
+  for(let i=0;i<4;i++){
+    const avg = totalS>0 ? Math.round(sAcc[i]/totalS) : 0;
+    DOM.sb[i].style.width = avg+'%';
+    DOM.sn[i].textContent = avg;
+  }
+
+  // 데이터 바인딩 (발생 횟수는 UI에서 제거되었으나 더미 엘리먼트에 안전 매핑)
+  if(DOM.ndtNeckCnt) DOM.ndtNeckCnt.textContent=neckCount+'회';
+  DOM.ndtNeckSec.textContent=Math.round(neckTotalSec)+'초';
+  DOM.ndtNeckPct.textContent=totalS>0?Math.round(neckTotalSec/totalS*100)+'%':'—';
+
+  if(DOM.ndtShoulderCnt) DOM.ndtShoulderCnt.textContent=shoulderCount+'회';
+  DOM.ndtShoulderSec.textContent=Math.round(shoulderTotalSec)+'초';
+  DOM.ndtShoulderPct.textContent=totalS>0?Math.round(shoulderTotalSec/totalS*100)+'%':'—';
+
+  if(DOM.ndtBothCnt) DOM.ndtBothCnt.textContent=bothCount+'회';
+  DOM.ndtBothSec.textContent=Math.round(bothTotalSec)+'초';
+  DOM.ndtBothPct.textContent=totalS>0?Math.round(bothTotalSec/totalS*100)+'%':'—';
+
+  if(DOM.ndtLegCnt) DOM.ndtLegCnt.textContent=legCrossCount+'회';
+  if(DOM.ndtLeanCnt) DOM.ndtLeanCnt.textContent=shoulderLeanCount+'회';
+  if(DOM.ndtSlouchCnt) DOM.ndtSlouchCnt.textContent=slouchCount+'회';
+  if(DOM.ndtPerchCnt) DOM.ndtPerchCnt.textContent=perchCount+'회';
+
+  drawDonut(gPct, wPct, bPct);
+  drawTimelineChart();
+  buildReportExtras();
+}
+
+// ═══════════════════════════════════════════════════
+// 파이썬 리포트 재현: 인사이트 + 자세문제 랭킹 + 맞춤형 피드백
+// ═══════════════════════════════════════════════════
+function fmtTimeSec(sec){
+  sec = Math.round(sec);
+  const m = Math.floor(sec/60), s = sec%60;
+  return m > 0 ? `${m}분 ${s}초` : `${s}초`;
+}
+
+function buildReportExtras(){
+  const tot = goodS + warnS + badS || 1;
+  const ok_r = goodS / tot, warn_r = warnS / tot, danger_r = badS / tot;
+
+  // 압력 평균 / 좌우 불균형
+  const pAvg = [0,0,0,0];
+  if(totalS > 0) for(let i=0;i<4;i++) pAvg[i] = sAcc[i]/totalS;
+  const hipTotal = pAvg[PRESSURE_HIP_L] + pAvg[PRESSURE_HIP_R];
+  const imbalance = hipTotal > 0 ? Math.abs(pAvg[PRESSURE_HIP_L]-pAvg[PRESSURE_HIP_R])/hipTotal*100 : 0;
+
+  // 시간대별 good 비율 (타임라인 3등분) — 링버퍼 순서 복원
+  const tl = orderedTimeline();
+  const okThirds = computeOkThirds(tl);
+
+  // 거북목 평균 심각도
+  const avgNeck = neckRatioN > 0 ? neckRatioSum/neckRatioN : 0;
+
+  // ── 자세 문제 랭킹 ──
+  const ranking = Object.keys(poseTagCounts)
+    .map(name => ({name, count: poseTagCounts[name]}))
+    .sort((a,b)=> b.count - a.count)
+    .slice(0,5);
+  const badTotal = ranking.reduce((s,r)=>s+r.count,0) || 1;
+  ranking.forEach(r => r.pct = Math.round(r.count/badTotal*1000)/10);
+
+  renderRanking(ranking);
+  renderInsights({tl, okThirds, ranking, imbalance, avgNeck});
+  renderFeedbacks({ok_r, warn_r, danger_r, okThirds, imbalance, avgNeck, pAvg});
+}
+
+// 링버퍼 timeline을 시간순으로 복원
+function orderedTimeline(){
+  const len = timeline.length;
+  if(len < 1200) return timeline.slice();
+  return timeline.slice(timelineHead).concat(timeline.slice(0, timelineHead));
+}
+
+// 초/중/후반 good 비율
+function computeOkThirds(tl){
+  const n = tl.length;
+  if(n < 3) return [0,0,0];
+  const third = Math.floor(n/3) || 1;
+  const r = [];
+  for(let i=0;i<3;i++){
+    const seg = tl.slice(i*third, (i+1)*third);
+    const okN = seg.filter(s=>s==='good').length;
+    r.push(seg.length ? okN/seg.length : 0);
+  }
+  return r;
+}
+
+function renderRanking(ranking){
+  const colors = ['#f5534f','#f5a824','#f5a824','#60a5fa','#60a5fa'];
+  if(!ranking.length){
+    DOM.rankTitle.style.display = 'none';
+    DOM.rankList.innerHTML = '';
+    return;
+  }
+  DOM.rankTitle.style.display = '';
+  DOM.rankList.innerHTML = ranking.map((r,i)=>`
+    <div class="rank-item">
+      <div class="rank-num" style="background:${colors[i]||'#60a5fa'}">${i+1}</div>
+      <div class="rank-name">${r.name}</div>
+      <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${r.pct}%;background:${colors[i]||'#60a5fa'}"></div></div>
+      <div class="rank-pct">${r.pct}%</div>
+    </div>`).join('');
+}
+
+function renderInsights({tl, okThirds, ranking, imbalance, avgNeck}){
+  const insights = [];
+  // 최장 바른자세 기록 (연속 good 프레임 → 초). fps 가정 약 30
+  let longest = 0, cur = 0;
+  for(const s of tl){ if(s==='good'){ cur++; longest = Math.max(longest,cur);} else cur=0; }
+  const fps = totalSec > 0 && totalS > 0 ? totalS/totalSec : 30;
+  const longestSec = fps > 0 ? longest/fps : 0;
+  if(longestSec > 10){
+    insights.push({icon:'🏆', title:'최장 바른자세 기록', val:fmtTimeSec(longestSec),
+      desc:'이 시간 동안 한 번도 흐트러지지 않았어요', color:'#3ecf8e'});
+  }
+  // 가장 취약한 시간대 (10구간 점수 최저)
+  if(totalSec > 60 && tl.length >= 10){
+    const BINS = 10, binN = Math.floor(tl.length/BINS) || 1;
+    let minIdx = 0, minScore = 101;
+    for(let i=0;i<BINS;i++){
+      const seg = tl.slice(i*binN,(i+1)*binN);
+      if(!seg.length) continue;
+      const ok = seg.filter(s=>s==='good').length;
+      const wn = seg.filter(s=>s==='warn').length;
+      const score = Math.round((ok*1.0 + wn*0.5)/seg.length*100);
+      if(score < minScore){ minScore = score; minIdx = i; }
+    }
+    if(minScore < 70){
+      const binLen = totalSec/BINS;
+      insights.push({icon:'⚠️', title:'가장 취약한 시간대',
+        val:`${fmtTimeSec(binLen*minIdx)}~${fmtTimeSec(binLen*(minIdx+1))}`,
+        desc:`이 구간 자세 점수 ${minScore}점 — 자세 흐트러짐 집중`, color:'#f5a824'});
+    }
+  }
+  // 주요 문제 + 팁
+  if(ranking.length){
+    const top = ranking[0];
+    const tips = {'거북목':'모니터를 눈높이로 올려보세요','어깨':'키보드 위치를 정중앙으로',
+      '다리':'양발을 바닥에 평행하게','기대기':'양쪽 좌골에 체중을 고르게','구부정':'등받이를 적극 활용하세요','걸터':'엉덩이를 등받이까지 깊게'};
+    let tip = '자세 점검 필요';
+    for(const k in tips){ if(top.name.indexOf(k) >= 0){ tip = tips[k]; break; } }
+    insights.push({icon:'📊', title:'주요 문제', val:top.name,
+      desc:`${top.pct}% — ${tip}`, color:'#f5534f'});
+  }
+  // 강점
+  let strength = null;
+  if(imbalance < 5 && (sAcc[PRESSURE_HIP_L]+sAcc[PRESSURE_HIP_R]) > 0){
+    strength = {val:`좌우 균형 ${Math.round(imbalance*10)/10}%`, desc:'골반 좌우 균형이 매우 좋아요'};
+  } else if(okThirds.length===3 && okThirds[2] >= 0.8){
+    strength = {val:`후반부 ${Math.round(okThirds[2]*100)}%`, desc:'후반에도 자세를 잘 유지했어요'};
+  } else if(alertCnt === 0 && totalSec > 30){
+    strength = {val:'경고 0회', desc:'5초 이상 지속된 불량 자세가 없었어요'};
+  }
+  if(strength){
+    insights.push({icon:'💪', title:'강점', val:strength.val, desc:strength.desc, color:'#60a5fa'});
+  }
+
+  if(!insights.length){
+    DOM.insightTitle.style.display = 'none';
+    DOM.insightGrid.innerHTML = '';
+    return;
+  }
+  DOM.insightTitle.style.display = '';
+  DOM.insightGrid.innerHTML = insights.map(it=>`
+    <div class="insight-card" style="border-left-color:${it.color}">
+      <div class="ic-head">${it.icon} ${it.title}</div>
+      <div class="ic-val" style="color:${it.color}">${it.val}</div>
+      <div class="ic-desc">${it.desc}</div>
+    </div>`).join('');
+}
+
+function renderFeedbacks({ok_r, warn_r, danger_r, okThirds, imbalance, avgNeck, pAvg}){
+  const fb = [];
+  const tl = orderedTimeline();
+  const total = tl.length || 1;
+  // 거북목
+  const neckN = tl.length ? Math.round(total * (neckRatioN/(totalS||1))) : 0;
+  const neck_r = (totalS>0) ? neckRatioN/totalS : 0;
+  if(neck_r > 0.3){
+    const severity = avgNeck > 0.12 ? '심하게' : '약간';
+    fb.push([danger_r>0 && neck_r>0.5 ? 'danger':'warn',
+      `거북목이 전체 시간의 ${Math.round(neck_r*100)}% 감지됐어요. 평균 ${Math.round(avgNeck*1000)/10}% ${severity} 앞으로 쏠렸어요. 모니터를 눈높이(약 5~8cm 위)로 올리고, 턱을 살짝 당겨 귀-어깨가 수직이 되도록 해보세요.`]);
+  } else if(neck_r > 0.1){
+    fb.push(['info', `거북목이 ${Math.round(neck_r*100)}% 감지됐어요. 화면을 볼 때 고개를 내밀지 않도록 의식적으로 주의해보세요.`]);
+  }
+  // 어깨
+  const shoulderFrames = (poseTagCounts['어깨 틀어짐']||0) + (poseTagCounts['어깨 균형 비대칭']||0);
+  const shoulder_r = shoulderFrames / (totalS||1);
+  if(shoulder_r > 0.25){
+    fb.push(['warn', `어깨 틀어짐이 ${Math.round(shoulder_r*100)}% 감지됐어요. 키보드나 마우스 위치가 한쪽으로 치우쳐 있을 수 있어요. 양 어깨가 수평이 되도록 팔꿈치 높이를 맞춰보세요.`]);
+  }
+  // 엉덩이 불균형
+  if(imbalance > 20){
+    const heavy = pAvg[PRESSURE_HIP_R] > pAvg[PRESSURE_HIP_L] ? '오른' : '왼';
+    const light = heavy === '오른' ? '왼' : '오른';
+    fb.push(['warn', `${heavy}쪽 엉덩이에 ${Math.round(imbalance*10)/10}% 더 많은 압력이 실렸어요. ${light}쪽으로 체중이 쏠리거나 다리를 꼬는 습관이 있을 수 있어요. 양쪽 좌골이 의자에 균등하게 닿도록 골반을 바로 세워보세요.`]);
+  } else if(imbalance > 10){
+    fb.push(['info', `좌우 엉덩이 압력 차이가 ${Math.round(imbalance*10)/10}%예요. 심하진 않지만 의식적으로 균형을 맞춰보세요.`]);
+  }
+  // 시간대별 패턴
+  if(okThirds.length === 3){
+    let best=0,worst=0;
+    for(let i=1;i<3;i++){ if(okThirds[i]>okThirds[best])best=i; if(okThirds[i]<okThirds[worst])worst=i; }
+    const names=['초반','중반','후반'];
+    if(okThirds[worst] < okThirds[best]*0.6){
+      const drop = Math.round((okThirds[best]-okThirds[worst])*100);
+      fb.push(['warn', `${names[worst]}부 바른자세 비율이 ${names[best]}부보다 ${drop}%p 낮았어요. ${worst===2?'집중이 길어질수록 자세가 무너지는 패턴이에요. 50분 작업 후 10분 휴식을 권장해요.':'중간에 자세가 흐트러졌어요. 알람을 설정해 주기적으로 자세를 점검해보세요.'}`]);
+    }
+  }
+  // 종합 (맨 앞)
+  if(ok_r >= 0.9){
+    fb.unshift(['ok', `훌륭한 세션이에요! 바른자세를 ${Math.round(ok_r*100)}% 유지했어요. 이 습관을 꾸준히 유지하면 목·어깨 통증 예방에 큰 도움이 돼요 💪`]);
+  } else if(ok_r >= 0.7){
+    fb.unshift(['ok', `전반적으로 양호한 자세예요. (${Math.round(ok_r*100)}% 유지) 아래 세부 피드백을 참고해 조금 더 개선해보세요.`]);
+  } else if(ok_r >= 0.5){
+    fb.unshift(['warn', `바른자세 유지율이 ${Math.round(ok_r*100)}%로 절반을 넘겼어요. 아래 항목들을 개선하면 허리·목 피로를 크게 줄일 수 있어요.`]);
+  } else {
+    fb.unshift(['danger', `바른자세 유지율이 ${Math.round(ok_r*100)}%로 낮아요. 의자 높이·모니터 위치·자세 습관을 함께 점검해보세요.`]);
+  }
+  if(fb.length === 1 && ok_r >= 0.7){
+    fb.push(['info', '특별한 자세 문제가 감지되지 않았어요. 현재 환경 세팅을 유지하세요.']);
+  }
+
+  const colorMap = {ok:'#3ecf8e', info:'#60a5fa', warn:'#f5a824', danger:'#f5534f'};
+  const iconMap  = {ok:'✅', info:'💡', warn:'⚠️', danger:'🔴'};
+  DOM.fbTitle.style.display = '';
+  DOM.fbList.innerHTML = fb.map(([type,msg])=>`
+    <div class="fb-item" style="border-left-color:${colorMap[type]}">
+      <span class="fb-icon">${iconMap[type]}</span><span>${msg}</span>
+    </div>`).join('');
+}
+
+function drawDonut(g,w,b){
+  const canvas=DOM.donutCanvas;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,140,140);
+  let start= -Math.PI/2;
+  const data=[g,w,b], colors=['#3ecf8e','#f5a824','#f5534f'];
+  data.forEach((v,i)=>{
+    if(v<=0) return;
+    const slice=(v/100)*Math.PI*2;
+    ctx.beginPath(); ctx.arc(70,70,58,start,start+slice);
+    ctx.strokeStyle=colors[i]; ctx.lineWidth=10; ctx.stroke();
+    start+=slice;
+  });
+}
+
+function drawTimelineChart(){
+  const canvas=DOM.timelineCanvas;
+  const ctx=canvas.getContext('2d');
+  const container=canvas.parentElement;
+  const len = timeline.length;
+  canvas.width=Math.max(container.clientWidth, len*3);
+  ctx.clearRect(0,0,canvas.width,45);
+  if(!len) return;
+  const w=canvas.width/len;
+  // 링버퍼: timelineHead부터 순서대로 읽기 (full 상태일 때만 회전)
+  const isFull = len >= 1200;
+  const COLORS = {'good':'#3ecf8e','warn':'#f5a824','bad':'#f5534f'};
+  for(let i=0;i<len;i++){
+    const idx = isFull ? (timelineHead + i) % len : i;
+    ctx.fillStyle = COLORS[timeline[idx]];
+    ctx.fillRect(i*w, 0, w+0.5, 45);
+  }
+}
+
+function justCloseOverlay(){
+  DOM.overlay.classList.remove('on');
+  setTimeout(()=>DOM.overlay.style.display='none', 400);
+  isAnalyzeMode = false;
+}
+
+function startNewSession(){
+  justCloseOverlay();
+  totalSec=0; goodSec=0; alertCnt=0;
+  totalS=0; goodS=0; warnS=0; badS=0;
+  sAcc[0]=sAcc[1]=sAcc[2]=sAcc[3]=0;
+  timeline.length = 0; timelineHead = 0;
+  poseTagCounts = {}; neckRatioSum = 0; neckRatioN = 0; lastNeckRatio = 0; pressureFrameCount = 0; backSumAll = 0;
+  scoreHist.length = 0;
+  lastState='good';
+  neckCount=0; shoulderCount=0; bothCount=0;
+  legCrossCount=0; slouchCount=0; perchCount=0; shoulderLeanCount=0;
+  neckTotalSec=0; shoulderTotalSec=0; bothTotalSec=0;
+  sessionRunning = true;
+  poseBaseline=null; calibrating=false; calibFrames=[];
+  badPoseSince=null; goodPoseSince=null; alertSent=false; confirmedStatus='ok'; goodHoldSince=null; lastConfirmedBadType=null; badAccumSec=0; pressureAccumSec=0; lastFrameTs=null; badNextAlertAt=CONSEC_THRESHOLD; pressureNextAlertAt=CONSEC_THRESHOLD;
+  pressureBadSince=null; pressureAlertSent=false;
+  DOM.ndtCalibStatus.textContent = '미완료';
+  addLog('새 세션 시작','ok');
+}
+
+async function closeStats(){
+  if(isAnalyzeMode){
+    justCloseOverlay();
+    return;
+  }
+  // 리포트를 띄우기 직전 카메라가 켜져 있었는지 (endSession에서 기록)
+  const resumeCam = wasCamOnBeforeReport;
+  startNewSession();
+  // 이전에 카메라가 켜져 있었으면 자동으로 다시 켜고 캘리브레이션까지 이어감
+  if(resumeCam){
+    await toggleCam();           // 카메라 재시작 (내부에서 initMediaPipe 호출)
+    // 카메라/모델이 준비될 시간을 약간 준 뒤 기준점 보정 시작
+    if(camOn) setTimeout(()=>{ if(camOn && !calibrating) startCalibration(); }, 2000);
+  }
+}
+
+// 메인 화면의 "다시 시작" 버튼 — 현재 세션을 자동 저장 후 리셋 + 카메라 자동 재시작
+async function restartSession(){
+  if(!confirm('현재 세션을 종료하고 새 세션을 시작하시겠습니까?\n(현재 세션은 자동 저장됩니다)')) return;
+
+  // 카메라가 켜져 있었는지 기억
+  const wasCamOn = camOn;
+
+  // 현재 세션 데이터를 누적 저장에 추가 (의미 있는 세션만)
+  if(totalSec >= 1) saveSessionToStorage();
+
+  // 통계/카메라 정지 후 리셋
+  sessionRunning = false;
+  if(camOn) stopCam();
+  if(simTimer){ clearInterval(simTimer); simTimer=null; }
+
+  // 모든 통계 초기화
+  totalSec=0; goodSec=0; alertCnt=0;
+  totalS=0; goodS=0; warnS=0; badS=0;
+  sAcc[0]=sAcc[1]=sAcc[2]=sAcc[3]=0;
+  timeline.length = 0; timelineHead = 0;
+  poseTagCounts = {}; neckRatioSum = 0; neckRatioN = 0; lastNeckRatio = 0; pressureFrameCount = 0; backSumAll = 0;
+  scoreHist.length = 0;
+  lastState='good';
+  neckCount=0; shoulderCount=0; bothCount=0;
+  legCrossCount=0; slouchCount=0; perchCount=0; shoulderLeanCount=0;
+  neckTotalSec=0; shoulderTotalSec=0; bothTotalSec=0;
+  poseBaseline=null; calibrating=false; calibFrames=[];
+  badPoseSince=null; goodPoseSince=null; alertSent=false; confirmedStatus='ok'; goodHoldSince=null; lastConfirmedBadType=null; badAccumSec=0; pressureAccumSec=0; lastFrameTs=null; badNextAlertAt=CONSEC_THRESHOLD; pressureNextAlertAt=CONSEC_THRESHOLD;
+  pressureBadSince=null; pressureAlertSent=false;
+
+  // UI 리셋
+  DOM.clk.textContent = '00:00:00';
+  DOM.mGood.textContent = '00:00';
+  DOM.mPct.textContent = '—';
+  DOM.ndtCalibStatus.textContent = '미완료';
+  // 직전 값 캐시도 무효화 (다음 updatePressureUI에서 강제 갱신)
+  _prevPressure.vals[0] = _prevPressure.vals[1] = _prevPressure.vals[2] = _prevPressure.vals[3] = -1;
+  _prevPressure.states[0] = _prevPressure.states[1] = _prevPressure.states[2] = _prevPressure.states[3] = '';
+  _lastChipStatus = null; _lastChipText = null;
+  updateChip('idle', '대기 중');
+
+  sessionRunning = true;
+  addLog('세션 다시 시작', 'ok');
+
+  // 이전에 카메라가 켜져 있었으면 자동으로 다시 켜기
+  if(wasCamOn){
+    await toggleCam();
+    if(camOn) setTimeout(()=>{ if(camOn && !calibrating) startCalibration(); }, 2000);
+  }
+}
+
+const SESSION_STORAGE_KEY = 'kw_posture_sessions';
+let isAnalyzeMode = false; // 누적 분석 화면을 띄운 상태인지
+let wasCamOnBeforeReport = false; // 리포트 직전 카메라 on 여부 (다시 시작 자동 재개용)
+
+function buildSessionReport(){
+  const score=totalS>0?Math.round((goodS/totalS)*100):0;
+  const h=p2(Math.floor(totalSec/3600)), m=p2(Math.floor((totalSec%3600)/60)), s=p2(totalSec%60);
+  const now2=new Date().toLocaleString('ko-KR');
+  return [
+    `날짜: ${now2}`,
+    `총 세션 시간: ${h}:${m}:${s}`,
+    `자세 점수: ${score}점`,
+    `경고 횟수: ${alertCnt}회`,
+    `바른자세 비율: ${Math.round(goodS/(totalS||1)*100)}%`,
+    `거북목 검출: ${neckCount}회 (${Math.round(neckTotalSec)}초)`,
+    `어깨 비대칭 검출: ${shoulderCount}회 (${Math.round(shoulderTotalSec)}초)`,
+    `골반 불균형(다리꼬기): ${legCrossCount}회`,
+    `한쪽으로 기대기: ${shoulderLeanCount}회`,
+    `구부정한 자세: ${slouchCount}회`,
+    `걸터앉기: ${perchCount}회`
+  ].join('\n');
+}
+
+function saveSessionToStorage(){
+  // 의미 있는 세션만 저장 (0초짜리 무시)
+  if(totalSec < 1) return;
+  try{
+    const sessions = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '[]');
+    sessions.push({
+      timestamp: Date.now(),
+      report: buildSessionReport(),
+      // 누적 분석용 원본 통계값
+      stats: {
+        totalSec, goodSec, alertCnt,
+        totalS, goodS, warnS, badS,
+        sAcc: [...sAcc],
+        timeline: [...timeline],
+        neckCount, shoulderCount, bothCount,
+        legCrossCount, slouchCount, perchCount, shoulderLeanCount,
+        neckTotalSec, shoulderTotalSec, bothTotalSec,
+        poseTagCounts: {...poseTagCounts},
+        neckRatioSum, neckRatioN
+      }
+    });
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessions));
+  }catch(e){ console.warn('세션 저장 실패', e); }
+}
+
+function exportStats(){
+  // 누적 분석 화면에서는 이미 저장된 데이터를 보는 중이므로 중복 저장하지 않음
+  if(isAnalyzeMode){
+    showToast('누적 분석 결과입니다 (이미 저장된 세션)');
+    return;
+  }
+  saveSessionToStorage();
+  let count = 0;
+  try{
+    count = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '[]').length;
+  }catch(e){}
+  showToast(`✅ 세션이 저장되었습니다 (누적 ${count}개)`);
+}
+
+// 메인 화면: localStorage에 저장된 모든 세션을 텍스트 파일로 다운로드
+function downloadReportTxt(){
+  let sessions = [];
+  try{
+    sessions = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '[]');
+  }catch(e){ sessions = []; }
+
+  if(sessions.length === 0){
+    showToast('저장된 세션이 없습니다. 먼저 세션을 저장해주세요.');
+    return;
+  }
+
+  const lines = ['KW바른자세 누적 세션 리포트', '═'.repeat(30),
+                 `총 기록 세션 수: ${sessions.length}회`,
+                 `생성: ${new Date().toLocaleString('ko-KR')}`,
+                 '═'.repeat(30), ''];
+
+  sessions.forEach((sess, idx) => {
+    lines.push(`[ 세션 ${idx+1} ]`);
+    lines.push(sess.report || '(요약 없음)');
+    lines.push('─'.repeat(30));
+    lines.push('');
+  });
+
+  const txt = lines.join('\n');
+  const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'KW_Posture_Report.txt';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  showToast(`📄 ${sessions.length}개 세션을 파일로 저장했습니다`);
+}
+
+// 누적 기록 삭제 — 5초 내 한 번 더 누르면 실제 삭제 (실수 방지, 다이얼로그 없이 동작)
+let _clearArmed = false;
+let _clearTimer = null;
+function clearSessionHistory(){
+  let count = 0;
+  try{ count = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '[]').length; }catch(e){}
+  if(count === 0){
+    showToast('삭제할 저장된 세션이 없습니다.');
+    return;
+  }
+  if(!_clearArmed){
+    _clearArmed = true;
+    showToast(`⚠ 저장된 ${count}개 기록을 삭제하려면 5초 내에 한 번 더 누르세요`);
+    if(_clearTimer) clearTimeout(_clearTimer);
+    _clearTimer = setTimeout(()=>{ _clearArmed = false; }, 5000);
+    return;
+  }
+  // 두 번째 클릭 → 실제 삭제
+  _clearArmed = false;
+  if(_clearTimer){ clearTimeout(_clearTimer); _clearTimer = null; }
+  localStorage.removeItem(SESSION_STORAGE_KEY);
+  addLog('누적 세션 기록이 모두 삭제되었습니다', 'warn');
+  showToast('🗑 모든 누적 기록이 삭제되었습니다');
+}
+
+// 누적 세션 분석 → 기존 리포트 UI 재활용
+function analyzeAllSessions(){
+  let sessions = [];
+  try{
+    sessions = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '[]');
+  }catch(e){ sessions = []; }
+
+  if(sessions.length === 0){
+    alert('저장된 세션이 없습니다. 세션을 종료한 뒤 결과를 저장하면 누적 분석이 가능합니다.');
+    return;
+  }
+
+  // 모든 세션 통계 합산
+  const agg = {
+    totalSec:0, goodSec:0, alertCnt:0,
+    totalS:0, goodS:0, warnS:0, badS:0,
+    sAcc:[0,0,0,0], timeline:[],
+    neckCount:0, shoulderCount:0, bothCount:0,
+    legCrossCount:0, slouchCount:0, perchCount:0, shoulderLeanCount:0,
+    neckTotalSec:0, shoulderTotalSec:0, bothTotalSec:0,
+    poseTagCounts:{}, neckRatioSum:0, neckRatioN:0
+  };
+
+  sessions.forEach(sess => {
+    const s = sess.stats;
+    if(!s) return;
+    agg.totalSec   += s.totalSec   || 0;
+    agg.goodSec    += s.goodSec    || 0;
+    agg.alertCnt   += s.alertCnt   || 0;
+    agg.totalS     += s.totalS     || 0;
+    agg.goodS      += s.goodS      || 0;
+    agg.warnS      += s.warnS      || 0;
+    agg.badS       += s.badS       || 0;
+    for(let i=0;i<4;i++) agg.sAcc[i] += (s.sAcc && s.sAcc[i]) || 0;
+    if(Array.isArray(s.timeline)) agg.timeline.push(...s.timeline);
+    agg.neckCount      += s.neckCount      || 0;
+    agg.shoulderCount  += s.shoulderCount  || 0;
+    agg.bothCount      += s.bothCount      || 0;
+    agg.legCrossCount  += s.legCrossCount  || 0;
+    agg.slouchCount    += s.slouchCount    || 0;
+    agg.perchCount     += s.perchCount     || 0;
+    agg.shoulderLeanCount += s.shoulderLeanCount || 0;
+    agg.neckTotalSec     += s.neckTotalSec     || 0;
+    agg.shoulderTotalSec += s.shoulderTotalSec || 0;
+    agg.bothTotalSec     += s.bothTotalSec     || 0;
+    agg.neckRatioSum += s.neckRatioSum || 0;
+    agg.neckRatioN   += s.neckRatioN   || 0;
+    if(s.poseTagCounts){
+      for(const k in s.poseTagCounts){
+        agg.poseTagCounts[k] = (agg.poseTagCounts[k]||0) + s.poseTagCounts[k];
+      }
+    }
+  });
+
+  // 전역 변수에 합산값 주입 (endSession이 이 변수들을 읽어 UI에 그림)
+  totalSec=agg.totalSec; goodSec=agg.goodSec; alertCnt=agg.alertCnt;
+  totalS=agg.totalS; goodS=agg.goodS; warnS=agg.warnS; badS=agg.badS;
+  sAcc=agg.sAcc; timeline=agg.timeline; timelineHead=0;
+  neckCount=agg.neckCount; shoulderCount=agg.shoulderCount; bothCount=agg.bothCount;
+  legCrossCount=agg.legCrossCount; slouchCount=agg.slouchCount; perchCount=agg.perchCount;
+  shoulderLeanCount=agg.shoulderLeanCount;
+  neckTotalSec=agg.neckTotalSec; shoulderTotalSec=agg.shoulderTotalSec; bothTotalSec=agg.bothTotalSec;
+  poseTagCounts=agg.poseTagCounts; neckRatioSum=agg.neckRatioSum; neckRatioN=agg.neckRatioN;
+
+  // 기존 리포트 오버레이 표시 로직 재활용
+  isAnalyzeMode = true;
+  endSession();
+
+  // 누적 분석임을 표시
+  const h=p2(Math.floor(agg.totalSec/3600)), m=p2(Math.floor((agg.totalSec%3600)/60)), s=p2(agg.totalSec%60);
+  DOM.stSub.textContent = `누적 분석 (${sessions.length}개 세션) · 총 ${h}:${m}:${s}`;
+}
+
+initDomCache();
+updatePressureUI();
+    </script>
+</body>
+</html>
